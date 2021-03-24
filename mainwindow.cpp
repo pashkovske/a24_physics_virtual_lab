@@ -24,7 +24,7 @@ int Element::getSizeY()
 }
 
 Wire::Wire(int contype, Element* parent)
-    : Element(parent), wtype(contype)
+    : Element(parent), type(contype)
 {
 }
 void Wire::paintEvent(QPaintEvent *)
@@ -38,9 +38,9 @@ void Wire::paintEvent(QPaintEvent *)
             bottomP(width()/2, height()),
             vertical_margin(0, node_radius);
 
-    if((wtype & (Right | Top | Left | Bottom)) == (Right | Top | Left | Bottom))
+    if((type & (Right | Top | Left | Bottom)) == (Right | Top | Left | Bottom))
     {
-        if (wtype & Connected)
+        if (type & Connected)
         {
             painter.setBrush(QBrush(Qt::black));
             painter.drawEllipse(centerP, node_radius/2, node_radius/2);
@@ -65,22 +65,22 @@ void Wire::paintEvent(QPaintEvent *)
     else
     {
         int i = 0;
-        if(wtype & Right)
+        if(type & Right)
         {
             painter.drawLine(rightP, centerP);
             i++;
         }
-        if(wtype & Left)
+        if(type & Left)
         {
             painter.drawLine(leftP, centerP);
             i++;
         }
-        if(wtype & Top)
+        if(type & Top)
         {
             painter.drawLine(topP, centerP);
             i++;
         }
-        if(wtype & Bottom)
+        if(type & Bottom)
         {
             painter.drawLine(bottomP, centerP);
             i++;
@@ -94,7 +94,7 @@ void Wire::paintEvent(QPaintEvent *)
 }
 
 Multimetr::Multimetr(int tool_type, int orintation, Element* parent)
-    : Element(parent), mtype(tool_type), contacts(orintation)
+    : Element(parent), type(tool_type), contacts(orintation)
 {
     sizeX = 3;
     sizeY = 3;
@@ -103,7 +103,7 @@ Multimetr::Multimetr(int tool_type, int orintation, Element* parent)
     display->setMode(QLCDNumber::Dec);
     display->setSmallDecimalPoint(true);
     QLabel* units = new QLabel(this);
-    switch(mtype)
+    switch(type)
     {
     case Voltmetr:
         units->setText("V");
@@ -114,9 +114,9 @@ Multimetr::Multimetr(int tool_type, int orintation, Element* parent)
     }
     QCheckBox* recording = new QCheckBox("is recording", this);
 
-    QVBoxLayout* vl = new QVBoxLayout;
+    QVBoxLayout* vl = new QVBoxLayout(this);
     vl->setContentsMargins(1.5*margins, 1.5*margins, 1.5*margins, 1.5*margins);
-    QHBoxLayout* htl = new QHBoxLayout;
+    QHBoxLayout* htl = new QHBoxLayout(this);
     htl->addWidget(display);
     htl->addWidget(units);
     vl->addLayout(htl);

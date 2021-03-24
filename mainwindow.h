@@ -23,7 +23,7 @@ public:
 
 class Wire : public Element
 {
-    int wtype;
+    int type;
     static const int node_radius = 7;
 
 public:
@@ -42,7 +42,7 @@ class Multimetr : public Element
     Q_OBJECT
     bool record_state;
     double current_value;
-    int mtype;
+    int type;
     int contacts;
 
 public:
