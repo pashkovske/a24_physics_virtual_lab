@@ -1,10 +1,25 @@
 #include "scemecalculator.h"
 
-ScemeCalculator::ScemeCalculator(double Troom_, double Isource_)
-    : Troom(Troom_), Isource(Isource_)
+Constants::Constants()
 {
-    R = new Semiconductor(Troom, Isource);
-    furance = new Furance(Troom);
+    double betta;
+    for (int i = 0; i < 8; i++)
+    {
+        betta = value[i][0] /2/k *e;
+        value[i][0] = exp(betta / T_0) / value[i][1];
+        value[i][1] = betta;
+    }
+}
+double Constants::getConstant(int i, int j)
+{
+    return value[i][j];
+}
+
+ScemeCalculator::ScemeCalculator(double Isource_)
+    : Isource(Isource_)
+{
+    R = new Semiconductor;
+    furance = new Furance;
     refreshValue(Voltmetr);
     refreshValue(Ampermetr);
 }
@@ -17,7 +32,7 @@ void ScemeCalculator::setValue(int valtype, double val)
 {
     switch (valtype) {
     case Room_tempirature:
-        Troom = val;
+        furance->setTroom(val);
         break;
     case Furance_current:
         furance->setI(val);
@@ -44,7 +59,7 @@ double ScemeCalculator::getValue(int valtype)
 {
     switch (valtype) {
     case Room_tempirature:
-        return Troom;
+        return furance->getTroom();
     case Source_current:
         return Isource;
     case Furance_tempirature:
@@ -87,6 +102,7 @@ void ScemeCalculator::refreshValue(int valtype)
         R->setI(A);
         break;
     case Voltmetr:
+        R->refreshU();
         V = R->getU();
         break;
     }
@@ -95,6 +111,11 @@ void ScemeCalculator::refreshValue(int valtype)
 Semiconductor::Semiconductor(double T_, double I_, int type_, double S_, double L_)
     :type(type_), S(S_), L(L_), T(T_), I(I_)
 {
+    consts = new Constants;
+}
+Semiconductor::~Semiconductor()
+{
+    delete consts;
 }
 void Semiconductor::setType(int type_)
 {
@@ -138,13 +159,24 @@ double Semiconductor::getU()
 }
 void Semiconductor::refreshU()
 {
-    double C = constants(type, 'C'), betta = constants(type, 'b');
-    U = L/C/S * exp(betta/T);
+    double C_0 = consts->getConstant(type, C),
+            betta = consts->getConstant(type, Betta);
+    U = L/C_0/S * exp(betta/T)*I;
 }
 
-Furance::Furance(double T_, double I_)
-    : T(T_), I(I_)
+Furance::Furance(double Troom_, double T_, double I_)
+    : Troom(Troom_), T(T_), I(I_)
 {}
+Furance::Furance(double Troom_)
+    :Troom(Troom_)
+{
+    T = Troom;
+    I = 0;
+}
+void Furance::setTroom(double val)
+{
+    Troom = val;
+}
 void Furance::setI(double val)
 {
     I = val;
@@ -155,7 +187,7 @@ void Furance::setT(double val)
 }
 void Furance::refreshT()
 {
-    T = alpha * I * I;
+    T = Troom + alpha * I * I;
 }
 double Furance::getI()
 {
@@ -164,4 +196,8 @@ double Furance::getI()
 double Furance::getT()
 {
     return T;
+}
+double Furance::getTroom()
+{
+    return Troom;
 }

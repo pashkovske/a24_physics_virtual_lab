@@ -1,40 +1,44 @@
 #pragma once
-
 #include <cmath>
+
 // Единицы измерения: см, Ом, В, А, эВ, К
+
+class Constants
+{
+    double value[8][2] = {{6, 1e10},
+                          {0.71, 43},
+                          {1.1, 2.6e5},
+                          {1.7, 3.1e8},
+                          {0.36, 0.1},
+                          {0.36, 0.2},
+                          {0.18, 0.007},
+                          {1.4, 150}};
+    static constexpr double
+            k = 1.38e-23,
+            e = 1.6e-19,
+            T_0 = 293;
+
+public:
+    Constants();
+    double getConstant(int material_type, int constant_type);
+};
 
 class Semiconductor
 {
     int type;
     double S, L, T, I, U;
-    static constexpr double properities[8][2] = {{6, 1e10},
-                                                {0.71, 43},
-                                                {1.1, 2.6e5},
-                                                {1.7, 3.1e8},
-                                                {0.36, 0.1},
-                                                {0.36, 0.2},
-                                                {0.18, 0.007},
-                                                {1.4, 150}};
-    static constexpr double constants(int i, char j)
-    {
-        const double
-                k = 1.38e-23,
-                e = 1.6e-19,
-                T_0 = 293;
-        switch (j) {
-        case 'C':
-            return exp(properities[i][0]/2/k/T_0*e)/properities[i][1];
-            break;
-        default:
-            return properities[i][0]/2/k*e;
-        }
-    }
+    Constants* consts;
+    static const int
+        C = 0,
+        Betta = 1;
+
 public:
     Semiconductor(double tempireture = 293,
                   double current = 0,
-                  int semicondacter_type = 0,
+                  int semicondacter_type = 1,
                   double square = 0.01,
                   double length = 1);
+    ~Semiconductor();
     void setType(int);
     static const int
         Diamond = 0,
@@ -59,28 +63,32 @@ public:
 
 class Furance
 {
-    double T, I;
+    double Troom, T, I;
     static constexpr double alpha = 10.0;
 
 public:
-    Furance(double tempirature = 293, double current = 0);
+    Furance(double room_tempirature,
+            double furance_tempirature,
+            double current = 0);
+    Furance(double room_tempirature = 293);
+    void setTroom(double);
     void setT(double);
     void setI(double);
     void refreshT();
     double getT();
+    double getTroom();
     double getI();
 };
 
 class ScemeCalculator
 {
-    double Troom,
-        Isource;
+    double Isource;
     double V, A;
     Semiconductor* R;
     Furance* furance;
 
 public:
-    ScemeCalculator(double room_tempirature = 293, double source_current = 0);
+    ScemeCalculator(double source_current = 0);
     ~ScemeCalculator();
     void setValue(int value_type, double);
     double getValue(int value_type);

@@ -1,8 +1,11 @@
 #include "mainwindow.h"
+#include "scemecalculator.h"
+#include <iostream>
+#include <fstream>
 
 #include <QtWidgets>
 
-using namespace Qt;
+using namespace std;
 
 int main(int argc, char *argv[])
 {
@@ -18,7 +21,7 @@ int main(int argc, char *argv[])
     Multimetr* volt = new Multimetr(Multimetr::Voltmetr, Multimetr::Horizontal, &w);
     Multimetr* amp = new Multimetr(Multimetr::Ampermetr, Multimetr::Vertical, &w);
 
-    QGridLayout* sceme = new QGridLayout;
+    QGridLayout* sceme = new QGridLayout(&w);
     sceme->setVerticalSpacing(0);
     sceme->setHorizontalSpacing(0);
     sceme->addWidget(volt, 0, 4, 3, 3);
