@@ -15,20 +15,20 @@ double Constants::getConstant(int i, int j)
     return value[i][j];
 }
 
-ScemeCalculator::ScemeCalculator(double Isource_)
+ScemeCalc::ScemeCalc(double Isource_)
     : Isource(Isource_)
 {
-    R = new Semiconductor;
-    furance = new Furance;
+    R = new SemiconductorCalc;
+    furance = new FuranceCalc;
     refreshValue(Voltmetr);
     refreshValue(Ampermetr);
 }
-ScemeCalculator::~ScemeCalculator()
+ScemeCalc::~ScemeCalc()
 {
     delete R;
     delete furance;
 }
-void ScemeCalculator::setValue(int valtype, double val)
+void ScemeCalc::setValue(int valtype, double val)
 {
     switch (valtype) {
     case Room_tempirature:
@@ -55,7 +55,7 @@ void ScemeCalculator::setValue(int valtype, double val)
         break;
     }
 }
-double ScemeCalculator::getValue(int valtype)
+double ScemeCalc::getValue(int valtype)
 {
     switch (valtype) {
     case Room_tempirature:
@@ -82,15 +82,15 @@ double ScemeCalculator::getValue(int valtype)
         return 0;
     }
 }
-void ScemeCalculator::setSemiconductorType(int type_)
+void ScemeCalc::setSemiconductorType(int type_)
 {
     R->setType(type_);
 }
-int ScemeCalculator::getSemiconductorType()
+int ScemeCalc::getSemiconductorType()
 {
     return R->getType();
 }
-void ScemeCalculator::refreshValue(int valtype)
+void ScemeCalc::refreshValue(int valtype)
 {
     switch (valtype) {
     case Furance_tempirature:
@@ -108,96 +108,96 @@ void ScemeCalculator::refreshValue(int valtype)
     }
 }
 
-Semiconductor::Semiconductor(double T_, double I_, int type_, double S_, double L_)
+SemiconductorCalc::SemiconductorCalc(double T_, double I_, int type_, double S_, double L_)
     :type(type_), S(S_), L(L_), T(T_), I(I_)
 {
     consts = new Constants;
 }
-Semiconductor::~Semiconductor()
+SemiconductorCalc::~SemiconductorCalc()
 {
     delete consts;
 }
-void Semiconductor::setType(int type_)
+void SemiconductorCalc::setType(int type_)
 {
     type = type_;
 }
-void Semiconductor::setT(double val)
+void SemiconductorCalc::setT(double val)
 {
     T = val;
 }
-void Semiconductor::setI(double val)
+void SemiconductorCalc::setI(double val)
 {
     I = val;
 }
-void Semiconductor::setS(double val)
+void SemiconductorCalc::setS(double val)
 {
     S = val;
 }
-void Semiconductor::setL(double val)
+void SemiconductorCalc::setL(double val)
 {
     L = val;
 }
-int Semiconductor::getType()
+int SemiconductorCalc::getType()
 {
     return type;
 }
-double Semiconductor::getI()
+double SemiconductorCalc::getI()
 {
     return I;
 }
-double Semiconductor::getS()
+double SemiconductorCalc::getS()
 {
     return S;
 }
-double Semiconductor::getL()
+double SemiconductorCalc::getL()
 {
     return L;
 }
-double Semiconductor::getU()
+double SemiconductorCalc::getU()
 {
     return U;
 }
-void Semiconductor::refreshU()
+void SemiconductorCalc::refreshU()
 {
     double C_0 = consts->getConstant(type, C),
             betta = consts->getConstant(type, Betta);
     U = L/C_0/S * exp(betta/T)*I;
 }
 
-Furance::Furance(double Troom_, double T_, double I_)
+FuranceCalc::FuranceCalc(double Troom_, double T_, double I_)
     : Troom(Troom_), T(T_), I(I_)
 {}
-Furance::Furance(double Troom_)
+FuranceCalc::FuranceCalc(double Troom_)
     :Troom(Troom_)
 {
     T = Troom;
     I = 0;
 }
-void Furance::setTroom(double val)
+void FuranceCalc::setTroom(double val)
 {
     Troom = val;
 }
-void Furance::setI(double val)
+void FuranceCalc::setI(double val)
 {
     I = val;
 }
-void Furance::setT(double val)
+void FuranceCalc::setT(double val)
 {
     T = val;
 }
-void Furance::refreshT()
+void FuranceCalc::refreshT()
 {
     T = Troom + alpha * I * I;
 }
-double Furance::getI()
+double FuranceCalc::getI()
 {
     return I;
 }
-double Furance::getT()
+double FuranceCalc::getT()
 {
     return T;
 }
-double Furance::getTroom()
+double FuranceCalc::getTroom()
 {
     return Troom;
 }

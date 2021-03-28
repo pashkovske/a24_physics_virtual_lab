@@ -23,7 +23,7 @@ public:
     double getConstant(int material_type, int constant_type);
 };
 
-class Semiconductor
+class SemiconductorCalc
 {
     int type;
     double S, L, T, I, U;
@@ -33,12 +33,12 @@ class Semiconductor
         Betta = 1;
 
 public:
-    Semiconductor(double tempireture = 293,
+    SemiconductorCalc(double tempireture = 293,
                   double current = 0,
                   int semicondacter_type = 1,
                   double square = 0.01,
                   double length = 1);
-    ~Semiconductor();
+    ~SemiconductorCalc();
     void setType(int);
     static const int
         Diamond = 0,
@@ -61,16 +61,16 @@ public:
     double getI();
 };
 
-class Furance
+class FuranceCalc
 {
     double Troom, T, I;
     static constexpr double alpha = 10.0;
 
 public:
-    Furance(double room_tempirature,
+    FuranceCalc(double room_tempirature,
             double furance_tempirature,
             double current = 0);
-    Furance(double room_tempirature = 293);
+    FuranceCalc(double room_tempirature = 293);
     void setTroom(double);
     void setT(double);
     void setI(double);
@@ -80,16 +80,16 @@ public:
     double getI();
 };
 
-class ScemeCalculator
+class ScemeCalc
 {
     double Isource;
     double V, A;
-    Semiconductor* R;
-    Furance* furance;
+    SemiconductorCalc* R;
+    FuranceCalc* furance;
 
 public:
-    ScemeCalculator(double source_current = 0);
-    ~ScemeCalculator();
+    ScemeCalc(double source_current = 0);
+    ~ScemeCalc();
     void setValue(int value_type, double);
     double getValue(int value_type);
     void refreshValue(int value_type);
