@@ -1,6 +1,7 @@
 #include "scemecalculator.h"
+#include "mainwindow.h"
 
-Constants::Constants()
+Properties::Properties()
 {
     double betta;
     for (int i = 0; i < 8; i++)
@@ -10,13 +11,13 @@ Constants::Constants()
         value[i][1] = betta;
     }
 }
-double Constants::getConstant(int i, int j)
+double Properties::getProperty(int i, int j)
 {
     return value[i][j];
 }
 
-ScemeCalc::ScemeCalc(double Isource_)
-    : Isource(Isource_)
+ScemeCalc::ScemeCalc(QObject* parent, double Isource_)
+    : QObject(parent), Isource(Isource_)
 {
     R = new SemiconductorCalc;
     furance = new FuranceCalc;
@@ -107,11 +108,29 @@ void ScemeCalc::refreshValue(int valtype)
         break;
     }
 }
+void ScemeCalc::setFuranceCurrent(int val)
+{
+    setValue(Furance_current, MainWindow::furanceIntToDouble(val));
+    refreshValue(Furance_tempirature);
+    emit termometrStatusChanged(getValue(Furance_tempirature));
+    refreshValue(Ampermetr);
+    emit ampermetrStatusChanged(getValue(Ampermetr));
+    refreshValue(Voltmetr);
+    emit voltmetrStatusChanged(getValue(Voltmetr));
+}
+void ScemeCalc::setMainSourceCurrent(int val)
+{
+    setValue(Source_current, MainWindow::mainIntToDouble(val));
+    refreshValue(Ampermetr);
+    emit ampermetrStatusChanged(getValue(Ampermetr));
+    refreshValue(Voltmetr);
+    emit voltmetrStatusChanged(getValue(Voltmetr));
+}
 
 SemiconductorCalc::SemiconductorCalc(double T_, double I_, int type_, double S_, double L_)
     :type(type_), S(S_), L(L_), T(T_), I(I_)
 {
-    consts = new Constants;
+    consts = new Properties;
 }
 SemiconductorCalc::~SemiconductorCalc()
 {
@@ -159,8 +178,8 @@ double SemiconductorCalc::getU()
 }
 void SemiconductorCalc::refreshU()
 {
-    double C_0 = consts->getConstant(type, C),
-            betta = consts->getConstant(type, Betta);
+    double C_0 = consts->getProperty(type, C),
+            betta = consts->getProperty(type, Betta);
     U = L/C_0/S * exp(betta/T)*I;
 }
 

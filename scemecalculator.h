@@ -1,9 +1,10 @@
 #pragma once
 #include <cmath>
+#include <QObject>
 
 // Единицы измерения: см, Ом, В, А, эВ, К
 
-class Constants
+class Properties
 {
     double value[8][2] = {{6, 1e10},
                           {0.71, 43},
@@ -19,15 +20,15 @@ class Constants
             T_0 = 293;
 
 public:
-    Constants();
-    double getConstant(int material_type, int constant_type);
+    Properties();
+    double getProperty(int material_type, int property_type);
 };
 
 class SemiconductorCalc
 {
     int type;
     double S, L, T, I, U;
-    Constants* consts;
+    Properties* consts;
     static const int
         C = 0,
         Betta = 1;
@@ -40,15 +41,6 @@ public:
                   double length = 1);
     ~SemiconductorCalc();
     void setType(int);
-    static const int
-        Diamond = 0,
-        Ge = 1,
-        Si = 2,
-        Se = 3,
-        Te = 4,
-        PbS = 5,
-        InSb = 6,
-        GaAs = 7;
     void setS(double);
     void setL(double);
     void setT(double);
@@ -80,15 +72,17 @@ public:
     double getI();
 };
 
-class ScemeCalc
+class ScemeCalc : public QObject
 {
+    Q_OBJECT
+
     double Isource;
     double V, A;
     SemiconductorCalc* R;
     FuranceCalc* furance;
 
 public:
-    ScemeCalc(double source_current = 0);
+    ScemeCalc(QObject* parent = nullptr, double source_current = 0);
     ~ScemeCalc();
     void setValue(int value_type, double);
     double getValue(int value_type);
@@ -104,6 +98,13 @@ public:
         Semiconductor_square = 8,
         Semiconductor_current = 9,
         Semiconductor_voltage = 10;
-    void setSemiconductorType(int);
     int getSemiconductorType();
+public slots:
+    void setSemiconductorType(int);
+    void setFuranceCurrent(int);
+    void setMainSourceCurrent(int);
+signals:
+    void termometrStatusChanged(double);
+    void voltmetrStatusChanged(double);
+    void ampermetrStatusChanged(double);
 };
