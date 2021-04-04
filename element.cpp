@@ -1,4 +1,5 @@
 #include "element.h"
+#include "mainwindow.h"
 #include <qpainter.h>
 #include <QLCDNumber>
 #include <QLabel>
@@ -10,10 +11,16 @@
 #include <QString>
 #include <QList>
 #include <QObject>
+#include <QSizePolicy>
+#include <QFrame>
 
+int Element::OuterMargins = 10;
+int Element::InnerMargins = 20;
 Element::Element(unsigned int nContacts, QWidget* parent, const char* file, unsigned int sizeX_, unsigned int sizeY_)
     : QWidget(parent), sizeX(sizeX_), sizeY(sizeY_), contactsNum(nContacts)
 {
+    setMinimumSize(QSize(sizeX*OuterMargins, sizeY*OuterMargins));
+    setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum));
     if(nContacts)
     {
         contacts = new unsigned int[nContacts];
@@ -36,13 +43,19 @@ Element::Element(unsigned int nContacts, QWidget* parent, const char* file, unsi
             {
                 inf >> first >> second;
                 table[i][j] = parse(first) | parse(second);
+                if((table[i][j] & (SubSceme | XC)) == (SubSceme | XC))
+                    table[i][j] -= SubSceme | XC;
             }
         }
         inf.close();
-        genereteLayout();
     }
     else
         table = nullptr;
+}
+Element::Element(unsigned int nContacts, Element* parent, const char* file, unsigned int sizeX_, unsigned int sizeY_)
+    : Element(nContacts, (QWidget*)parent, file, sizeX_, sizeY_)
+{
+    pen = parent->getPen();
 }
 Element::~Element()
 {
@@ -63,26 +76,35 @@ int Element::getSizeY()
 {
     return sizeY;
 }
+const QPen& Element::getPen()
+{
+    return pen;
+}
 void Element::setSizeX(int val)
 {
     sizeX = val;
+    setMinimumWidth((2*val+1)*OuterMargins);
 }
 void Element::setSizeY(int val)
 {
     sizeY = val;
+    setMinimumHeight((2*val+1)*OuterMargins);
+}
+void Element::setPen(const QPen & val)
+{
+    pen = val;
 }
 void Element::setContact(unsigned int contact_number, unsigned int position)
 {
     if (contact_number < contactsNum)
         contacts[contact_number] = position;
 }
-void Element::drawContacts()
+void Element::drawContacts(QPainter& painter)
 {
-    QPainter painter(this);
-    QPointF hStep(width()/sizeX, 0),
-            vStep(0, height()/sizeY),
-            hMargin(margins, 0),
-            vMargin(0, margins),
+    QPointF hStep(width()/(qreal)sizeX, 0),
+            vStep(0, height()/(qreal)sizeY),
+            hMargin(OuterMargins, 0),
+            vMargin(0, OuterMargins),
             pos(0, 0);
     int c, j, flag;
     for(unsigned int i = 0; i < contactsNum; i++)
@@ -161,65 +183,75 @@ void Element::setBorderPropereties(T* element, int** table, int i, int j)
 }
 void Element::genereteLayout()
 {
-    CustomGridLayout* layout = new CustomGridLayout(this);
-    layout->setVerticalSpacing(0);
-    layout->setHorizontalSpacing(0);
-    unsigned int i, j, props;
-    Multimetr* tmpM;
-    Source* tmpS;
-    Resistor* tmpR;
-    Semiconductor* tmpSC;
-    for(i = 1; i < sizeY-1; i++)
+    if(table != nullptr)
     {
-        for(j = 1; j < sizeX-1; j++)
+        CustomGridLayout* layout = new CustomGridLayout(this);
+        unsigned int i, j, props, k = 0;
+        Multimetr* tmpM;
+        Source* tmpS;
+        Resistor* tmpR;
+        Semiconductor* tmpSC;
+        Subsceme* tmps;
+        for(i = 1; i < sizeY-1; i++)
         {
-            props = 0;
-            switch (table[i][j] & ElementMask) {
-            case WireC:
-                if(table[i][j+1] & (ElementMask | XC))
-                    props = props | Right;
-                if(table[i][j-1] & (ElementMask | XC))
-                    props = props | Left;
-                if(table[i+1][j] & (ElementMask | XC))
-                    props = props | Bottom;
-                if(table[i-1][j] & (ElementMask | XC))
-                    props = props | Top;
-                layout->addElement(new Wire(props, this), i, j);
-                break;
-            case MultimetrC:
-                tmpM = new Multimetr(table[i][j] & ElementTypeMask, this);
-                switch (table[i][j] & ElementTypeMask) {
-                case VoltmetrC:
-                    tmpM->setName("voltmetr");
+            for(j = 1; j < sizeX-1; j++)
+            {
+                props = 0;
+                switch (table[i][j] & (ElementMask | SubSceme)) {
+                case WireC:
+                    if(table[i][j+1] & (ElementMask | XC))
+                        props = props | Right;
+                    if(table[i][j-1] & (ElementMask | XC))
+                        props = props | Left;
+                    if(table[i+1][j] & (ElementMask | XC))
+                        props = props | Bottom;
+                    if(table[i-1][j] & (ElementMask | XC))
+                        props = props | Top;
+                    layout->addElement(new Wire(props, this), i, j);
                     break;
-                case AmpermetrC:
-                    tmpM->setName("ampermetr");
+                case MultimetrC:
+                    tmpM = new Multimetr(table[i][j] & ElementTypeMask, this);
+                    switch (table[i][j] & ElementTypeMask) {
+                    case VoltmetrC:
+                        tmpM->setName("voltmetr");
+                        break;
+                    case AmpermetrC:
+                        tmpM->setName("ampermetr");
+                        break;
+                    case TermometrC:
+                        tmpM->setName("termometr");
+                        break;
+                    }
+                    setBorderPropereties<Multimetr>(tmpM, table, i, j);
+                    layout->addElement(tmpM, i, j);
                     break;
-                case TermometrC:
-                    tmpM->setName("termometr");
+                case SourceC:
+                    tmpS = new Source(this);
+                    tmpS->setName("source");
+                    setBorderPropereties<Source>(tmpS, table, i, j);
+                    layout->addElement(tmpS, i, j);
+                    break;
+                case ResistorC:
+                    tmpR = new Resistor(this);
+                    tmpR->setName("resistor");
+                    setBorderPropereties<Resistor>(tmpR, table, i, j);
+                    layout->addElement(tmpR, i, j);
+                    break;
+                case SemiconductorC:
+                    tmpSC = new Semiconductor(this);
+                    tmpSC->setName("semiconductor");
+                    setBorderPropereties<Semiconductor>(tmpSC, table, i, j);
+                    layout->addElement(tmpSC, i, j);
+                    break;
+                case SubSceme:
+                    for(k = 1; !(table[i][j+k] & Right); k++) {}
+                    props = k;
+                    for(k = 1; !(table[i+k][j+props] & Bottom); k++) {}
+                    tmps = new Subsceme("Furance", j, i, props, k, this);
+                    //tmps->refreshRect();
+                    //tmps->repaint();
                     break;
                 }
-                setBorderPropereties<Multimetr>(tmpM, table, i, j);
-                layout->addElement(tmpM, i, j);
-                break;
-            case SourceC:
-                tmpS = new Source(this);
-                tmpS->setName("source");
-                setBorderPropereties<Source>(tmpS, table, i, j);
-                layout->addElement(tmpS, i, j);
-                break;
-            case ResistorC:
-                tmpR = new Resistor(this);
-                tmpR->setName("resistor");
-                setBorderPropereties<Resistor>(tmpR, table, i, j);
-                layout->addElement(tmpR, i, j);
-                break;
-            case SemiconductorC:
-                tmpSC = new Semiconductor(this);
-                tmpSC->setName("semiconductor");
-                setBorderPropereties<Semiconductor>(tmpSC, table, i, j);
-                layout->addElement(tmpSC, i, j);
-                break;
             }
         }
     }
@@ -232,17 +264,17 @@ int Element::parse(char c)
     case 'x':
         return XC;
     case 'I':
-        return SourceC;
+        return SourceC | XC;
     case 'A':
-        return MultimetrC | AmpermetrC;
+        return MultimetrC | AmpermetrC | XC;
     case 'V':
-        return MultimetrC | VoltmetrC;
+        return MultimetrC | VoltmetrC | XC;
     case 'T':
-        return MultimetrC | TermometrC;
+        return MultimetrC | TermometrC | XC;
     case 'R':
-        return ResistorC;
+        return ResistorC | XC;
     case 'S':
-        return SemiconductorC;
+        return SemiconductorC | XC;
     case 'r':
         return Right | XC;
     case 't':
@@ -251,6 +283,8 @@ int Element::parse(char c)
         return Left | XC;
     case 'b':
         return Bottom | XC;
+    case 's':
+        return SubSceme;
     default:
         return 0;
     }
@@ -269,6 +303,9 @@ void Element::setName(QString name)
 CustomGridLayout::CustomGridLayout(QWidget* parent)
     : QGridLayout(parent)
 {
+    setSizeConstraint(QLayout::SetMinimumSize);
+    setVerticalSpacing(0);
+    setHorizontalSpacing(0);
 }
 void CustomGridLayout::addElement(Element *element, int fromRow, int fromColumn, Qt::Alignment alignment)
 {
@@ -287,14 +324,15 @@ Wire::Wire(int contype, Element* parent)
 void Wire::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
+    painter.setPen(pen);
+    painter.setRenderHint(QPainter::Antialiasing);
     QPointF
-            topP(width()/2, 0),
-            leftP(0, height()/2),
-            centerP(width()/2, height()/2),
-            rightP(width(), height()/2),
-            bottomP(width()/2, height()),
+            topP(width()/2.0, 0),
+            leftP(0, height()/2.0),
+            centerP(width()/2.0, height()/2.0),
+            rightP(width(), height()/2.0),
+            bottomP(width()/2.0, height()),
             vertical_margin(0, node_radius);
-
     if((type & DirectionMask) == DirectionMask)
     {
         if (type & Connected)
@@ -356,27 +394,48 @@ Multimetr::Multimetr(int tool_type, Element* parent)
     QLCDNumber* display = new QLCDNumber(6, this);
     display->setMode(QLCDNumber::Dec);
     display->setSmallDecimalPoint(true);
+    display->setSegmentStyle(QLCDNumber::Flat);
+    display->setAutoFillBackground(true);
+    QPalette pal(display->palette());
+    display->setFrameStyle(QFrame::Box);
+    pal.setColor(display->backgroundRole(), QColor(Qt::lightGray));
+    pal.setColor(QPalette::Light, QColor(Qt::darkGray));
+    pal.setColor(QPalette::Dark, QColor(Qt::darkGray));
+    display->setPalette(pal);
 
-    QLabel* units = new QLabel(this);
+    QLabel *units = new QLabel(this),
+            *head = new QLabel(this);
     switch(type)
     {
     case VoltmetrC:
+        head->setText("<center>Voltmetr (U)</center>");
         units->setText("V");
         break;
     case AmpermetrC:
+        head->setText("<center>Ampermetr (I)</center>");
         units->setText("A");
         break;
     case TermometrC:
-        units->setText("K");
+        head->setText("<center>Termometr (t)</center>");
+        units->setText("°С");
         contactsNum = 0;
+        display->display(0);
     }
     QCheckBox* recording = new QCheckBox("is recording", this);
 
+    head->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+    units->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
+    display->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    recording->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+
     QVBoxLayout* vl = new QVBoxLayout(this);
-    vl->setContentsMargins(1.5*margins, 1.5*margins, 1.5*margins, 1.5*margins);
+    vl->setSizeConstraint(QLayout::SetMinimumSize);
+    vl->setContentsMargins(InnerMargins, InnerMargins, InnerMargins, InnerMargins);
     QHBoxLayout* htl = new QHBoxLayout(this);
+    htl->setSizeConstraint(QLayout::SetMinimumSize);
     htl->addWidget(display);
     htl->addWidget(units);
+    vl->addWidget(head);
     vl->addLayout(htl);
     vl->addWidget(recording);
     setLayout(vl);
@@ -384,39 +443,51 @@ Multimetr::Multimetr(int tool_type, Element* parent)
     QObject::connect(recording, SIGNAL(stateChanged(int)), this, SLOT(recordingState(int)));
     QObject::connect(this, SIGNAL(valueChanged(double)), display, SLOT(display(double)));
     recording->setCheckState(Qt::Unchecked);
-    setValue(0.1);
 }
 void Multimetr::recordingState(int s)
 {
     if(s == Qt::Unchecked)
+    {
         record_state = false;
+        emit recordingStateChanged(false);
+    }
     else
+    {
         record_state = true;
+        emit recordingStateChanged(true);
+    }
 }
 void Multimetr::setValue(double v)
 {
     current_value = v;
-    emit valueChanged(v);
+    if(type == TermometrC)
+        current_value -= MainWindow::ZeroCelsius;
+    emit valueChanged(current_value);
 }
 void Multimetr::paintEvent(QPaintEvent *)
 {
-    drawContacts();
+    QLCDNumber* display = findChild<QLCDNumber*>();
+    display->setMaximumHeight(display->width()*2/7);
     QPainter painter(this);
-    painter.drawRect(margins, margins, width() - 2*margins, height() - 2*margins);
+    painter.setPen(pen);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setBrush(Qt::white);
+    drawContacts(painter);
+    painter.drawRect(OuterMargins, OuterMargins, width() - 2*OuterMargins, height() - 2*OuterMargins);
 }
 
 Source::Source(Element* parent)
     : Element(2, parent)
 {
-    QLabel* label = new QLabel("I", this);
     Arrow* arr = new Arrow(Arrow::Up, this);
     QSlider* slider = new QSlider(Qt::Vertical, this);
+    arr->setMinimumWidth(slider->width()/2);
     QObject::connect(slider, SIGNAL(valueChanged(int)), this, SLOT(setValue(int)));
     slider->setTickInterval(1);
 
     QHBoxLayout* layout = new QHBoxLayout(this);
-    layout->setContentsMargins(1.5*margins, 1.5*margins, 1.5*margins, 1.5*margins);
-    layout->addWidget(label);
+    layout->setSizeConstraint(QLayout::SetMinimumSize);
+    layout->setContentsMargins(InnerMargins, InnerMargins, InnerMargins, InnerMargins);
     layout->addWidget(arr);
     layout->addWidget(slider);
 }
@@ -426,11 +497,17 @@ Source::Arrow::Arrow(int dir, QWidget* parent)
 void Source::Arrow::paintEvent(QPaintEvent*)
 {
     QPainter painter(this);
+    QPen pen;
+    pen.setWidthF(3);
+    pen.setCapStyle(Qt::RoundCap);
+    pen.setJoinStyle(Qt::RoundJoin);
+    painter.setPen(pen);
+    painter.setRenderHint(QPainter::Antialiasing);
     QPointF
-            topP(width()/2, height()/4),
-            bottomP(width()/2, height()*3/4),
-            vertical_margin(0, height()/6),
-            horizontal_margin(width()/4, 0);
+            topP(width()/3.0, height()/4.0),
+            bottomP(width()/3.0, height()*3/4.0),
+            vertical_margin(0, height()/6.0),
+            horizontal_margin(width()/6.0, 0);
     painter.drawLine(topP, bottomP);
     switch (direction) {
     case Up:
@@ -442,12 +519,17 @@ void Source::Arrow::paintEvent(QPaintEvent*)
         painter.drawLine(bottomP, bottomP - vertical_margin - horizontal_margin);
         break;
     }
+    painter.setFont(QFont("Times", 24, -1, true));
+    painter.drawText(topP + 2*vertical_margin - 2*horizontal_margin, "I");
 }
 void Source::paintEvent(QPaintEvent *)
 {
-    drawContacts();
     QPainter painter(this);
-    painter.drawRect(margins, margins, width() - 2*margins, height() - 2*margins);
+    painter.setPen(pen);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setBrush(Qt::white);
+    drawContacts(painter);
+    painter.drawRect(OuterMargins, OuterMargins, width() - 2*OuterMargins, height() - 2*OuterMargins);
 }
 void Source::setMin(int val)
 {
@@ -478,15 +560,22 @@ Semiconductor::Semiconductor(Element* parent)
                         << "GaAs");
     select->addItems(list);
     QVBoxLayout* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(1.5*margins, 1.5*margins, 1.5*margins, 1.5*margins);
+    layout->setSizeConstraint(QLayout::SetMinimumSize);
+    layout->setContentsMargins(InnerMargins, InnerMargins, InnerMargins, InnerMargins);
     layout->addWidget(select);
     layout->addStretch();
 }
 void Semiconductor::paintEvent(QPaintEvent*)
 {
-    drawContacts();
     QPainter painter(this);
-    painter.drawRect(margins, margins, width() - 2*margins, height() - 2*margins);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setBrush(Qt::white);
+    painter.drawRect(OuterMargins, OuterMargins, width() - 2*OuterMargins, height() - 2*OuterMargins);
+    painter.setPen(QPen(Qt::NoPen));
+    painter.setPen(pen);
+    drawContacts(painter);
+    painter.setBrush(QBrush(QColor(Qt::darkGray), Qt::BDiagPattern));
+    painter.drawRect(OuterMargins, OuterMargins, width() - 2*OuterMargins, height() - 2*OuterMargins);
 }
 void Semiconductor::setType(int type)
 {
@@ -496,14 +585,17 @@ void Semiconductor::setType(int type)
 Resistor::Resistor(Element* parent)
     : Element(2, parent)
 {
+
 }
 void Resistor::paintEvent(QPaintEvent*)
 {
-    drawContacts();
     QPainter painter(this);
-    QPointF firstP(width()/2, margins),
-            vStep(0, (height() - 2*margins)/8),
-            hStep(width() - 2*margins, 0),
+    painter.setPen(pen);
+    painter.setRenderHint(QPainter::Antialiasing);
+    drawContacts(painter);
+    QPointF firstP(width()/2, OuterMargins),
+            vStep(0, (height() - 2*OuterMargins)/8.0),
+            hStep(width() - 2*OuterMargins, 0),
             secondP = firstP + vStep/2 + hStep/2;
     painter.drawLine(firstP, secondP);
     int sign = -1;
@@ -518,3 +610,38 @@ void Resistor::paintEvent(QPaintEvent*)
     painter.drawLine(firstP, secondP);
 }
 
+Subsceme::Subsceme(const QString &name, int x_, int y_, unsigned int width_, unsigned int height_, Element *parent)
+    : Element(0, parent, nullptr, width_, height_), X(x_), Y(y_)
+{
+    label = new QLabel(name, this);
+    QVBoxLayout *layout = new QVBoxLayout(this);
+    layout->addWidget(label);
+    layout->setContentsMargins(InnerMargins, InnerMargins, InnerMargins, InnerMargins);
+    layout->setAlignment(label, Qt::AlignHCenter | Qt::AlignTop);
+}
+void Subsceme::refreshRect()
+{
+    int cx, cy, cwidth, cheight;
+    cx = (parent()->findChild<Semiconductor*>("semiconductor0"))->x();
+    cy = (parent()->findChild<Semiconductor*>("semiconductor0"))->y();
+    cheight = (parent()->findChild<Semiconductor*>("semiconductor0"))->height();
+    cwidth = (parent()->findChild<Semiconductor*>("semiconductor0"))->width();
+    cwidth += (parent()->findChild<Multimetr*>("termometr0"))->width();
+    cwidth += (parent()->findChild<Resistor*>("resistor0"))->width();
+    cx -= OuterMargins;
+    cy -= OuterMargins + 30;
+    cwidth += 2*OuterMargins;
+    cheight += 2*OuterMargins + 30;
+    setGeometry(cx, cy, cwidth, cheight);
+}
+void Subsceme::paintEvent(QPaintEvent*)
+{
+    refreshRect();
+    QPainter painter(this);
+    QPen pen;
+    pen.setStyle(Qt::DashLine);
+    pen.setWidthF(4);
+    painter.setPen(pen);
+    painter.drawRect(OuterMargins, OuterMargins, width() - 2*OuterMargins, height() - 2*OuterMargins);
+
+}

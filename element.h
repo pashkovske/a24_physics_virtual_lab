@@ -1,22 +1,25 @@
 #pragma once
 #include <QWidget>
+#include <QLabel>
 #include <QGridLayout>
+#include <QPen>
 
 class Element : public QWidget
 {
     int** table;
-
     template<typename T>
     void setBorderPropereties(T* element, int** table, int positionX, int positionY);
-    void genereteLayout();
     int parse(char);
 protected:
     unsigned int sizeX, sizeY;
     unsigned int* contacts;
     unsigned int contactsNum;
-    static const int margins = 20;
+    QPen pen;
+    static int
+        OuterMargins,
+        InnerMargins;
 
-    void drawContacts();
+    void drawContacts(QPainter& painter);
 
 public:
     Element(unsigned int number_of_contacts = 0,
@@ -24,11 +27,18 @@ public:
             const char* file_name = nullptr,
             unsigned int horizontal_size = 1,
             unsigned int vertical_size = 1);
+    Element(unsigned int number_of_contacts = 0,
+            Element *parent = nullptr,
+            const char* file_name = nullptr,
+            unsigned int horizontal_size = 1,
+            unsigned int vertical_size = 1);
     ~Element();
     int getSizeX();
     int getSizeY();
+    const QPen& getPen();
     void setSizeX(int);
     void setSizeY(int);
+    void setPen(const QPen&);
     static const int
         Right =     0b1000000,
         Top =       0b10000000,
@@ -38,18 +48,20 @@ public:
 
         ElementMask =           0b1111,
         ElementTypeMask =       0b110000,
-        NumberMask =            0b100000000000,
+        NumberMask =            0b1000000000000,
         WireC =                 0b0001,
         XC =                    0b10000000000,
         MultimetrC =            0b0011,
         SourceC =               0b0100,
         ResistorC =             0b0101,
         SemiconductorC =        0b0110,
+        SubSceme =              0b100000000000,
         AmpermetrC =            0b110000,
         VoltmetrC =             0b010000,
         TermometrC =            0b100000;
     void setContact(unsigned contact_number, unsigned raw_position); // позиция от 0 по часовой стрелке
     void setName(QString name);
+    void genereteLayout();
 };
 
 class CustomGridLayout : public QGridLayout
@@ -93,6 +105,7 @@ public slots:
     void setValue(double);
 signals:
     void valueChanged(double);
+    void recordingStateChanged(bool);
 };
 
 class Source : public Element
@@ -141,4 +154,23 @@ class Resistor : public Element
 
 public:
     Resistor(Element* parent = nullptr);
+};
+
+class Subsceme : public Element
+{
+    Q_OBJECT
+
+    QLabel *label;
+    void paintEvent(QPaintEvent*);
+    int X, Y;
+
+public:
+    Subsceme(const QString &name,
+             int x_position,
+             int y_position,
+             unsigned int width,
+             unsigned int height,
+             Element *parent = nullptr);
+public slots:
+    void refreshRect();
 };

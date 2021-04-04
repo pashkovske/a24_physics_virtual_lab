@@ -126,6 +126,16 @@ void ScemeCalc::setMainSourceCurrent(int val)
     refreshValue(Voltmetr);
     emit voltmetrStatusChanged(getValue(Voltmetr));
 }
+void ScemeCalc::setRoomTemperature(double val)
+{
+    setValue(Room_tempirature, val);
+    refreshValue(Furance_tempirature);
+    emit termometrStatusChanged(getValue(Furance_tempirature));
+    refreshValue(Ampermetr);
+    emit ampermetrStatusChanged(getValue(Ampermetr));
+    refreshValue(Voltmetr);
+    emit voltmetrStatusChanged(getValue(Voltmetr));
+}
 
 SemiconductorCalc::SemiconductorCalc(double T_, double I_, int type_, double S_, double L_)
     :type(type_), S(S_), L(L_), T(T_), I(I_)

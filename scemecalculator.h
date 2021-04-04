@@ -1,6 +1,7 @@
 #pragma once
 #include <cmath>
 #include <QObject>
+#include "mainwindow.h"
 
 // Единицы измерения: см, Ом, В, А, эВ, К
 
@@ -36,7 +37,7 @@ class SemiconductorCalc
 public:
     SemiconductorCalc(double tempireture = 293,
                   double current = 0,
-                  int semicondacter_type = 1,
+                  int semicondacter_type = 0,
                   double square = 0.01,
                   double length = 1);
     ~SemiconductorCalc();
@@ -62,7 +63,7 @@ public:
     FuranceCalc(double room_tempirature,
             double furance_tempirature,
             double current = 0);
-    FuranceCalc(double room_tempirature = 293);
+    FuranceCalc(double room_tempirature = MainWindow::ZeroCelsius);
     void setTroom(double);
     void setT(double);
     void setI(double);
@@ -103,6 +104,7 @@ public slots:
     void setSemiconductorType(int);
     void setFuranceCurrent(int);
     void setMainSourceCurrent(int);
+    void setRoomTemperature(double);
 signals:
     void termometrStatusChanged(double);
     void voltmetrStatusChanged(double);
