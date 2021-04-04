@@ -22,7 +22,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QWidget(parent)
 {
     QVBoxLayout* layout = new QVBoxLayout(this);
-    Element* desk = new Element(0, this, "/home/geexander/sceme.txt");
+    Element* desk = new Element(0, this, "scheme.txt");
 
     QPen pen;
     pen.setWidthF(1.5);
@@ -131,7 +131,7 @@ Termometr::Termometr(QWidget *parent, double T_)
     : QFrame(parent), T(T_)
 {
     QVBoxLayout *vl = new QVBoxLayout(this);
-    QLabel *label = new  QLabel("Room tempepature", this);
+    QLabel *label = new  QLabel("Комнатная температура", this);
     vl->addWidget(label);
     QHBoxLayout *hl = new QHBoxLayout(this);
     QLineEdit *field = new QLineEdit("0", this);
@@ -164,8 +164,8 @@ void Termometr::setT(const QString &val)
 Table::Table(QWidget *parent)
     :QWidget(parent)
 {
-    QPushButton *record = new QPushButton("Record", this);
-    QPushButton *save = new QPushButton("Save", this);
+    QPushButton *record = new QPushButton("Записать", this);
+    QPushButton *save = new QPushButton("Сохранить", this);
     QObject::connect(record, SIGNAL(clicked()), this, SLOT(addColumn()));
     QObject::connect(save, SIGNAL(clicked()), this, SLOT(saveIntoFile()));
     record->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -188,7 +188,7 @@ Table::Table(QWidget *parent)
     scrollAreaContent->setObjectName("scrollareacontent0");
     scrollAreaContent->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     QHBoxLayout *scrollAreaLayout = new QHBoxLayout(scrollAreaContent);
-    Column *header = new Column(scrollAreaContent, "t, °C", "I, A", "U, V");
+    Column *header = new Column(scrollAreaContent, "t, °C", "I, А", "U, В");
     data.push_back(header);
     scrollArea->setMinimumHeight(header->height() + 50);
     scrollAreaLayout->addWidget(header);
@@ -265,10 +265,10 @@ void Table::setRecordStateU(bool state)
 }
 void Table::saveIntoFile()
 {
-    std::ofstream out("/home/geexander/output.txt");
+    std::ofstream out("output.txt");
     for(auto it = data.begin(); it != data.end(); ++it)
     {
-        out << (*it)->getT() << "\t" << (*it)->getI() << "\t" << (*it)->getU() << "\n";
+        out << (*it)->getT() << "\t\t" << (*it)->getI() << "\t\t" << (*it)->getU() << "\n";
     }
 }
 Table::Column::Column(QWidget *parent, const QString& T, const QString& I, const QString& U)

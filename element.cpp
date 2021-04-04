@@ -247,7 +247,7 @@ void Element::genereteLayout()
                     for(k = 1; !(table[i][j+k] & Right); k++) {}
                     props = k;
                     for(k = 1; !(table[i+k][j+props] & Bottom); k++) {}
-                    tmps = new Subsceme("Furance", j, i, props, k, this);
+                    tmps = new Subsceme("Печь", j, i, props, k, this);
                     //tmps->refreshRect();
                     //tmps->repaint();
                     break;
@@ -408,20 +408,20 @@ Multimetr::Multimetr(int tool_type, Element* parent)
     switch(type)
     {
     case VoltmetrC:
-        head->setText("<center>Voltmetr (U)</center>");
+        head->setText("<center>Вольтметр (U)</center>");
         units->setText("V");
         break;
     case AmpermetrC:
-        head->setText("<center>Ampermetr (I)</center>");
+        head->setText("<center>Амперметр (I)</center>");
         units->setText("A");
         break;
     case TermometrC:
-        head->setText("<center>Termometr (t)</center>");
+        head->setText("<center>Термометр (t)</center>");
         units->setText("°С");
         contactsNum = 0;
         display->display(0);
     }
-    QCheckBox* recording = new QCheckBox("is recording", this);
+    QCheckBox* recording = new QCheckBox("записывается", this);
 
     head->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     units->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
@@ -550,7 +550,7 @@ Semiconductor::Semiconductor(Element* parent)
     QComboBox* select = new QComboBox(this);
     QObject::connect(select, SIGNAL(currentIndexChanged(int)), this, SLOT(setType(int)));
     QStringList list = (QStringList()
-                        << "Diamond"
+                        << "Алмаз"
                         << "Ge"
                         << "Si"
                         << "Se"
