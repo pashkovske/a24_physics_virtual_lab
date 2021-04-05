@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-#include "scemecalculator.h"
+#include "schemecalculator.h"
 #include "element.h"
 #include <QBoxLayout>
 #include <QLineEdit>
@@ -31,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
     desk->setPen(pen);
     desk->genereteLayout();
 
-    ScemeCalc* scemecalc = new ScemeCalc(this);
+    SchemeCalc* schemecalc = new SchemeCalc(this);
     Multimetr* tmpM;
     Source* tmpS;
     Semiconductor* tmpSC;
@@ -40,34 +40,37 @@ MainWindow::MainWindow(QWidget *parent)
     tmpS = desk->findChild<Source*>("source0");
     tmpS->setMin(IMainMinInt);
     tmpS->setMax(IMainMaxInt);
-    QObject::connect(tmpS, SIGNAL(valueChanged(int)), scemecalc, SLOT(setMainSourceCurrent(int)));
+    QObject::connect(tmpS, SIGNAL(valueChanged(int)), schemecalc, SLOT(setMainSourceCurrent(int)));
 
     tmpS = desk->findChild<Source*>("source1");
     tmpS->setMin(IFuranceMinInt);
     tmpS->setMax(IFuranceMaxInt);
-    QObject::connect(tmpS, SIGNAL(valueChanged(int)), scemecalc, SLOT(setFuranceCurrent(int)));
+    QObject::connect(tmpS, SIGNAL(valueChanged(int)), schemecalc, SLOT(setFuranceCurrent(int)));
 
     tmpM = desk->findChild<Multimetr*>("voltmetr0");
-    QObject::connect(scemecalc, SIGNAL(voltmetrStatusChanged(double)), tmpM, SLOT(setValue(double)));
-    QObject::connect(scemecalc, SIGNAL(voltmetrStatusChanged(double)), table, SLOT(setU(double)));
+    QObject::connect(schemecalc, SIGNAL(voltmetrStatusChanged(double)), tmpM, SLOT(setValue(double)));
+    QObject::connect(schemecalc, SIGNAL(voltmetrStatusChanged(double)), table, SLOT(setU(double)));
     QObject::connect(tmpM, SIGNAL(recordingStateChanged(bool)), table, SLOT(setRecordStateU(bool)));
 
 
     tmpM = desk->findChild<Multimetr*>("ampermetr0");
-    QObject::connect(scemecalc, SIGNAL(ampermetrStatusChanged(double)), tmpM, SLOT(setValue(double)));
-    QObject::connect(scemecalc, SIGNAL(ampermetrStatusChanged(double)), table, SLOT(setI(double)));
+    QObject::connect(schemecalc, SIGNAL(ampermetrStatusChanged(double)), tmpM, SLOT(setValue(double)));
+    QObject::connect(schemecalc, SIGNAL(ampermetrStatusChanged(double)), table, SLOT(setI(double)));
     QObject::connect(tmpM, SIGNAL(recordingStateChanged(bool)), table, SLOT(setRecordStateI(bool)));
 
     tmpM = desk->findChild<Multimetr*>("termometr0");
-    QObject::connect(scemecalc, SIGNAL(termometrStatusChanged(double)), tmpM, SLOT(setValue(double)));
-    QObject::connect(scemecalc, SIGNAL(termometrStatusChanged(double)), table, SLOT(setT(double)));
+    QObject::connect(schemecalc, SIGNAL(termometrStatusChanged(double)), tmpM, SLOT(setValue(double)));
+    QObject::connect(schemecalc, SIGNAL(termometrStatusChanged(double)), table, SLOT(setT(double)));
     QObject::connect(tmpM, SIGNAL(recordingStateChanged(bool)), table, SLOT(setRecordStateT(bool)));
 
     tmpSC = desk->findChild<Semiconductor*>("semiconductor0");
-    QObject::connect(tmpSC, SIGNAL(typeChanged(int)), scemecalc, SLOT(setSemiconductorType(int)));
+    QObject::connect(tmpSC, SIGNAL(typeChanged(int)), schemecalc, SLOT(setSemiconductorType(int)));
+    QObject::connect(tmpSC, SIGNAL(typeChanged(int)), schemecalc, SLOT(refreshAll()));
+    QObject::connect(tmpSC, SIGNAL(lengthChanged(double)), schemecalc, SLOT(setSemiconductorLength(double)));
+    QObject::connect(tmpSC, SIGNAL(squareChanged(double)), schemecalc, SLOT(setSemiconductorSquare(double)));
 
     Termometr* termometr = new Termometr(this);
-    QObject::connect(termometr, SIGNAL(valueChanged(double)), scemecalc, SLOT(setRoomTemperature(double)));
+    QObject::connect(termometr, SIGNAL(valueChanged(double)), schemecalc, SLOT(setRoomTemperature(double)));
 
     termometr->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     table->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -133,7 +136,7 @@ Termometr::Termometr(QWidget *parent, double T_)
     QVBoxLayout *vl = new QVBoxLayout(this);
     QLabel *label = new  QLabel("Комнатная температура", this);
     vl->addWidget(label);
-    QHBoxLayout *hl = new QHBoxLayout(this);
+    QHBoxLayout *hl = new QHBoxLayout;
     QLineEdit *field = new QLineEdit("0", this);
     QLabel *units = new QLabel("°С", this);
     hl->addWidget(field);
@@ -142,8 +145,8 @@ Termometr::Termometr(QWidget *parent, double T_)
     hl->setSizeConstraint(QLayout::SetMinimumSize);
     vl->setSizeConstraint(QLayout::SetMinimumSize);
 
-    QDoubleValidator *validator = new QDoubleValidator(this);
-    validator->setRange(-273.15, 1000, 2);
+    QDoubleValidator *validator = new QDoubleValidator(field);
+    validator->setRange(-273.15, 10000, 2);
     field->setValidator(validator);
     QObject::connect(field, SIGNAL(textEdited(const QString &)), this, SLOT(setT(const QString &)));
     setFrameStyle(QFrame::Box | QFrame::Raised);
@@ -158,7 +161,8 @@ void Termometr::setT(const QString &val)
 {
     QLocale locale;
     T = locale.toDouble(val) + MainWindow::ZeroCelsius;
-    emit valueChanged(T);
+    if(T > 0)
+        emit valueChanged(T);
 }
 
 Table::Table(QWidget *parent)
@@ -175,7 +179,7 @@ Table::Table(QWidget *parent)
     scrollArea->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
     scrollArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     QHBoxLayout *layout = new QHBoxLayout(this);
-    QVBoxLayout *buttons = new QVBoxLayout(this);
+    QVBoxLayout *buttons = new QVBoxLayout;
     buttons->addWidget(record);
     buttons->addWidget(save);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -188,9 +192,9 @@ Table::Table(QWidget *parent)
     scrollAreaContent->setObjectName("scrollareacontent0");
     scrollAreaContent->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     QHBoxLayout *scrollAreaLayout = new QHBoxLayout(scrollAreaContent);
-    Column *header = new Column(scrollAreaContent, "t, °C", "I, А", "U, В");
+    Column *header = new Column(scrollAreaContent, "t, °C", "I, А", "U, В", "R, Ом");
     data.push_back(header);
-    scrollArea->setMinimumHeight(header->height() + 50);
+    scrollArea->setMinimumHeight(header->height() + 70);
     scrollAreaLayout->addWidget(header);
     scrollAreaLayout->addStretch();
     scrollAreaLayout->setContentsMargins(0, 0, 0, 0);
@@ -206,22 +210,39 @@ Table::Table(QWidget *parent)
 Table::~Table()
 {
     while(!data.empty())
-        removeColumn(0);
+        removeColumn(-1);
 }
 void Table::addColumn()
 {
-    if(recordI || recordI || recordU)
+    if(recordT || recordI || recordU || (I > MainWindow::ZeroValue))
     {
         QWidget *sac = findChild<QWidget*>("scrollareacontent0");
-        QString strT = "", strI = "", strU = "";
+        QString strT = "", strI = "", strU = "", strR = "";
         QLocale locale;
         if(recordT)
-            strT = locale.toString(T);
+        {
+            if((T < MainWindow::ZeroValue) && (-T < MainWindow::ZeroValue))
+                strT = "0";
+            else
+                strT = locale.toString(T);
+        }
         if(recordI)
-            strI = locale.toString(I);
+        {
+            if(I < MainWindow::ZeroValue)
+                strI = "0";
+            else
+                strI = locale.toString(I);
+        }
         if(recordU)
-            strU = locale.toString(U);
-        Column *column = new Column(sac, strT, strI, strU);
+        {
+            if(U < MainWindow::ZeroValue)
+                strU = "0";
+            else
+                strU = locale.toString(U);
+        }
+        if(I > MainWindow::ZeroValue)
+            strR = locale.toString(U/I);
+        Column *column = new Column(sac, strT, strI, strU, strR);
         QHBoxLayout *layout = (QHBoxLayout*) sac->layout();
         layout->insertWidget(layout->count() - 1, column);
         data.push_back(column);
@@ -268,13 +289,13 @@ void Table::saveIntoFile()
     std::ofstream out("output.txt");
     for(auto it = data.begin(); it != data.end(); ++it)
     {
-        out << (*it)->getT() << "\t\t" << (*it)->getI() << "\t\t" << (*it)->getU() << "\n";
+        out << (*it)->getT() << "\t\t" << (*it)->getI() << "\t\t" << (*it)->getU() << "\t\t" << (*it)->getR() << "\n";
     }
 }
-Table::Column::Column(QWidget *parent, const QString& T, const QString& I, const QString& U)
+Table::Column::Column(QWidget *parent, const QString& T, const QString& I, const QString& U, const QString& R)
     : QFrame(parent)
 {
-    QLabel *lblT, *lblI, *lblU;
+    QLabel *lblT, *lblI, *lblU, *lblR;
     lblT = new QLabel(T, this);
     lblT->setObjectName("lblT");
     lblT->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -296,12 +317,20 @@ Table::Column::Column(QWidget *parent, const QString& T, const QString& I, const
     lblU->setMidLineWidth(0);
     lblU->setLineWidth(1);
 
+    lblR = new QLabel(R, this);
+    lblR->setObjectName("lblR");
+    lblR->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    lblR->setFrameStyle(QFrame::Box | QFrame::Plain);
+    lblR->setMidLineWidth(0);
+    lblR->setLineWidth(1);
+
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
     layout->addWidget(lblT);
     layout->addWidget(lblI);
     layout->addWidget(lblU);
+    layout->addWidget(lblR);
 
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 }
@@ -318,5 +347,10 @@ std::string Table::Column::getI()
 std::string Table::Column::getU()
 {
         QLabel *lbl = findChild<QLabel*>("lblU");
+        return lbl->text().toStdString();
+}
+std::string Table::Column::getR()
+{
+        QLabel *lbl = findChild<QLabel*>("lblR");
         return lbl->text().toStdString();
 }

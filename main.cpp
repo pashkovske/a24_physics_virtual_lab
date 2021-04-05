@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
     QScrollArea sa;
     sa.setWidgetResizable(true);
     sa.setWidget(w);
-    sa.resize(800, 600);
+    sa.resize(1200, 600);
     sa.show();
 
     return app.exec();

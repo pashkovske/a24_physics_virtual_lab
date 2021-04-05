@@ -92,7 +92,6 @@ class Multimetr : public Element
     bool record_state;
     double current_value;
     int type;
-    int contacts;
 
     void paintEvent(QPaintEvent*);
 
@@ -144,8 +143,12 @@ public:
     Semiconductor(Element* parent = nullptr);
 public slots:
     void setType(int);
+    void setLength(const QString &);
+    void setSquare(const QString &);
 signals:
     void typeChanged(int);
+    void lengthChanged(double);
+    void squareChanged(double);
 };
 
 class Resistor : public Element
@@ -161,8 +164,9 @@ class Subsceme : public Element
     Q_OBJECT
 
     QLabel *label;
-    void paintEvent(QPaintEvent*);
     int X, Y;
+    void paintEvent(QPaintEvent*);
+    void refreshRect();
 
 public:
     Subsceme(const QString &name,
@@ -171,6 +175,4 @@ public:
              unsigned int width,
              unsigned int height,
              Element *parent = nullptr);
-public slots:
-    void refreshRect();
 };

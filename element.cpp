@@ -13,6 +13,7 @@
 #include <QObject>
 #include <QSizePolicy>
 #include <QFrame>
+#include <QLineEdit>
 
 int Element::OuterMargins = 10;
 int Element::InnerMargins = 20;
@@ -431,7 +432,7 @@ Multimetr::Multimetr(int tool_type, Element* parent)
     QVBoxLayout* vl = new QVBoxLayout(this);
     vl->setSizeConstraint(QLayout::SetMinimumSize);
     vl->setContentsMargins(InnerMargins, InnerMargins, InnerMargins, InnerMargins);
-    QHBoxLayout* htl = new QHBoxLayout(this);
+    QHBoxLayout* htl = new QHBoxLayout;
     htl->setSizeConstraint(QLayout::SetMinimumSize);
     htl->addWidget(display);
     htl->addWidget(units);
@@ -551,19 +552,48 @@ Semiconductor::Semiconductor(Element* parent)
     QObject::connect(select, SIGNAL(currentIndexChanged(int)), this, SLOT(setType(int)));
     QStringList list = (QStringList()
                         << "Алмаз"
-                        << "Ge"
-                        << "Si"
-                        << "Se"
-                        << "Te"
-                        << "PbS"
-                        << "InSb"
-                        << "GaAs");
+                        << "Германий"
+                        << "Кремний"
+                        << "Селен"
+                        << "Теллур"
+                        << "Сульфид свинца"
+                        << "Антимонид индия"
+                        << "Арсенид галия");
     select->addItems(list);
     QVBoxLayout* layout = new QVBoxLayout(this);
-    layout->setSizeConstraint(QLayout::SetMinimumSize);
     layout->setContentsMargins(InnerMargins, InnerMargins, InnerMargins, InnerMargins);
     layout->addWidget(select);
+
+    QHBoxLayout *hl1 = new QHBoxLayout;
+    QLineEdit *field1 = new QLineEdit("1", this);
+    QLabel *units1 = new QLabel("см", this);
+    QLabel *variable1 = new QLabel("Длина:", this);
+    hl1->addWidget(variable1);
+    hl1->addWidget(field1);
+    hl1->addWidget(units1);
+    hl1->setSizeConstraint(QLayout::SetMinimumSize);
+    QDoubleValidator *validator1 = new QDoubleValidator(field1);
+    validator1->setRange(10e-8, 10e50, 8);
+    field1->setValidator(validator1);
+    QObject::connect(field1, SIGNAL(textEdited(const QString &)), this, SLOT(setLength(const QString &)));
+    layout->addLayout(hl1);
+
+    QHBoxLayout *hl2 = new QHBoxLayout;
+    QLineEdit *field2 = new QLineEdit("1", this);
+    QLabel *units2 = new QLabel("см", this);
+    QLabel *variable2 = new QLabel("Площадь:", this);
+    hl2->addWidget(variable2);
+    hl2->addWidget(field2);
+    hl2->addWidget(units2);
+    hl2->setSizeConstraint(QLayout::SetMinimumSize);
+    QDoubleValidator *validator2 = new QDoubleValidator(field2);
+    validator2->setRange(10e-16, 10e100, 16);
+    field2->setValidator(validator2);
+    QObject::connect(field2, SIGNAL(textEdited(const QString &)), this, SLOT(setSquare(const QString &)));
+    layout->addLayout(hl2);
+
     layout->addStretch();
+    layout->setSizeConstraint(QLayout::SetMinimumSize);
 }
 void Semiconductor::paintEvent(QPaintEvent*)
 {
@@ -580,6 +610,18 @@ void Semiconductor::paintEvent(QPaintEvent*)
 void Semiconductor::setType(int type)
 {
     emit typeChanged(type);
+}
+void Semiconductor::setLength(const QString &val)
+{
+    QLocale locale;
+    double tmp = locale.toDouble(val);
+    emit lengthChanged(tmp);
+}
+void Semiconductor::setSquare(const QString &val)
+{
+    QLocale locale;
+    double tmp = locale.toDouble(val);
+    emit squareChanged(tmp);
 }
 
 Resistor::Resistor(Element* parent)

@@ -12,12 +12,12 @@ SOURCES += \
     element.cpp \
     main.cpp \
     mainwindow.cpp \
-    scemecalculator.cpp
+    schemecalculator.cpp
 
 HEADERS += \
     element.h \
     mainwindow.h \
-    scemecalculator.h
+    schemecalculator.h
 
 TRANSLATIONS += \
     Lab_135_ru_RU.ts

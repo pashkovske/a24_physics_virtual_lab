@@ -21,6 +21,7 @@ public:
     MainWindow(QWidget *parent = nullptr);
 
     static constexpr double ZeroCelsius = 273.15;
+    static constexpr double ZeroValue = 10e-20;
 
     static void setIMainMinDouble(double);
     static void setIMainMaxDouble(double);
@@ -68,10 +69,12 @@ class Table : public QWidget
         Column(QWidget *parent = nullptr,
                const QString& temperature = "",
                const QString& current = "",
-               const QString& voltage = "");
+               const QString& voltage = "",
+               const QString& resistance = "");
         std::string getT();
         std::string getI();
         std::string getU();
+        std::string getR();
     };
 
     std::list<Column*> data;

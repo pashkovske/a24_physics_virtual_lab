@@ -38,7 +38,7 @@ public:
     SemiconductorCalc(double tempireture = 293,
                   double current = 0,
                   int semicondacter_type = 0,
-                  double square = 0.01,
+                  double square = 1,
                   double length = 1);
     ~SemiconductorCalc();
     void setType(int);
@@ -73,7 +73,7 @@ public:
     double getI();
 };
 
-class ScemeCalc : public QObject
+class SchemeCalc : public QObject
 {
     Q_OBJECT
 
@@ -83,8 +83,8 @@ class ScemeCalc : public QObject
     FuranceCalc* furance;
 
 public:
-    ScemeCalc(QObject* parent = nullptr, double source_current = 0);
-    ~ScemeCalc();
+    SchemeCalc(QObject* parent = nullptr, double source_current = 0);
+    ~SchemeCalc();
     void setValue(int value_type, double);
     double getValue(int value_type);
     void refreshValue(int value_type);
@@ -101,10 +101,13 @@ public:
         Semiconductor_voltage = 10;
     int getSemiconductorType();
 public slots:
+    void refreshAll();
     void setSemiconductorType(int);
     void setFuranceCurrent(int);
     void setMainSourceCurrent(int);
     void setRoomTemperature(double);
+    void setSemiconductorLength(double);
+    void setSemiconductorSquare(double);
 signals:
     void termometrStatusChanged(double);
     void voltmetrStatusChanged(double);

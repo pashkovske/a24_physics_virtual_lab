@@ -1,4 +1,4 @@
-#include "scemecalculator.h"
+#include "schemecalculator.h"
 #include "mainwindow.h"
 
 Properties::Properties()
@@ -16,7 +16,7 @@ double Properties::getProperty(int i, int j)
     return value[i][j];
 }
 
-ScemeCalc::ScemeCalc(QObject* parent, double Isource_)
+SchemeCalc::SchemeCalc(QObject* parent, double Isource_)
     : QObject(parent), Isource(Isource_)
 {
     R = new SemiconductorCalc;
@@ -24,12 +24,12 @@ ScemeCalc::ScemeCalc(QObject* parent, double Isource_)
     refreshValue(Voltmetr);
     refreshValue(Ampermetr);
 }
-ScemeCalc::~ScemeCalc()
+SchemeCalc::~SchemeCalc()
 {
     delete R;
     delete furance;
 }
-void ScemeCalc::setValue(int valtype, double val)
+void SchemeCalc::setValue(int valtype, double val)
 {
     switch (valtype) {
     case Room_tempirature:
@@ -56,7 +56,7 @@ void ScemeCalc::setValue(int valtype, double val)
         break;
     }
 }
-double ScemeCalc::getValue(int valtype)
+double SchemeCalc::getValue(int valtype)
 {
     switch (valtype) {
     case Room_tempirature:
@@ -83,15 +83,15 @@ double ScemeCalc::getValue(int valtype)
         return 0;
     }
 }
-void ScemeCalc::setSemiconductorType(int type_)
+void SchemeCalc::setSemiconductorType(int type_)
 {
     R->setType(type_);
 }
-int ScemeCalc::getSemiconductorType()
+int SchemeCalc::getSemiconductorType()
 {
     return R->getType();
 }
-void ScemeCalc::refreshValue(int valtype)
+void SchemeCalc::refreshValue(int valtype)
 {
     switch (valtype) {
     case Furance_tempirature:
@@ -108,33 +108,39 @@ void ScemeCalc::refreshValue(int valtype)
         break;
     }
 }
-void ScemeCalc::setFuranceCurrent(int val)
+void SchemeCalc::refreshAll()
+{
+    refreshValue(Furance_tempirature);
+    emit termometrStatusChanged(getValue(Furance_tempirature));
+    refreshValue(Ampermetr);
+    emit ampermetrStatusChanged(getValue(Ampermetr));
+    refreshValue(Voltmetr);
+    emit voltmetrStatusChanged(getValue(Voltmetr));
+}
+void SchemeCalc::setFuranceCurrent(int val)
 {
     setValue(Furance_current, MainWindow::furanceIntToDouble(val));
-    refreshValue(Furance_tempirature);
-    emit termometrStatusChanged(getValue(Furance_tempirature));
-    refreshValue(Ampermetr);
-    emit ampermetrStatusChanged(getValue(Ampermetr));
-    refreshValue(Voltmetr);
-    emit voltmetrStatusChanged(getValue(Voltmetr));
+    refreshAll();
 }
-void ScemeCalc::setMainSourceCurrent(int val)
+void SchemeCalc::setMainSourceCurrent(int val)
 {
     setValue(Source_current, MainWindow::mainIntToDouble(val));
-    refreshValue(Ampermetr);
-    emit ampermetrStatusChanged(getValue(Ampermetr));
-    refreshValue(Voltmetr);
-    emit voltmetrStatusChanged(getValue(Voltmetr));
+    refreshAll();
 }
-void ScemeCalc::setRoomTemperature(double val)
+void SchemeCalc::setRoomTemperature(double val)
 {
     setValue(Room_tempirature, val);
-    refreshValue(Furance_tempirature);
-    emit termometrStatusChanged(getValue(Furance_tempirature));
-    refreshValue(Ampermetr);
-    emit ampermetrStatusChanged(getValue(Ampermetr));
-    refreshValue(Voltmetr);
-    emit voltmetrStatusChanged(getValue(Voltmetr));
+    refreshAll();
+}
+void SchemeCalc::setSemiconductorLength(double val)
+{
+    setValue(Semiconductor_length, val);
+    refreshAll();
+}
+void SchemeCalc::setSemiconductorSquare(double val)
+{
+    setValue(Semiconductor_square, val);
+    refreshAll();
 }
 
 SemiconductorCalc::SemiconductorCalc(double T_, double I_, int type_, double S_, double L_)
