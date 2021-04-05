@@ -410,11 +410,11 @@ Multimetr::Multimetr(int tool_type, Element* parent)
     {
     case VoltmetrC:
         head->setText("<center>Вольтметр (U)</center>");
-        units->setText("V");
+        units->setText("В");
         break;
     case AmpermetrC:
         head->setText("<center>Амперметр (I)</center>");
-        units->setText("A");
+        units->setText("А");
         break;
     case TermometrC:
         head->setText("<center>Термометр (t)</center>");
