@@ -11,19 +11,19 @@
 #include <QComboBox>
 #include <cmath>
 #include <QPainter>
-#include "/home/geexander/Qt/5.15.2/gcc_64/include/QtCharts/QtCharts"
+#include <QtCharts>
 
 int MainWindow::IFuranceMinInt = 0;
-int MainWindow::IFuranceMaxInt = 100;
-int MainWindow::IMainMinInt = 0;
-int MainWindow::IMainMaxInt = 100;
-double MainWindow::IFuranceMinDouble = 0;
-double MainWindow::IFuranceMaxDouble= 5;
-double MainWindow::FuranceMaxDeltaT = 300;
-double MainWindow::IMainMinDouble = 0;
-double MainWindow::IMainMaxDouble = 1;
+int MainWindow:: IFuranceMaxInt = 100;
+int MainWindow:: IMainMinInt = 0;
+int MainWindow:: IMainMaxInt = 100;
+double MainWindow:: IFuranceMinDouble = 0;
+double MainWindow:: IFuranceMaxDouble= 5;
+double MainWindow:: FuranceMaxDeltaT = 300;
+double MainWindow:: IMainMinDouble = 0;
+double MainWindow:: IMainMaxDouble = 1;
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow:: MainWindow(QWidget *parent)
     : QWidget(parent)
 {
     Element* desk = new Element(0, this, "scheme.txt");
@@ -132,27 +132,27 @@ double MainWindow:: getFuranceMaxDeltaT()
     return FuranceMaxDeltaT;
 }
 
-double MainWindow::IfuranceIntToDouble(int value)
+double MainWindow:: IfuranceIntToDouble(int value)
 {
     return value * (IFuranceMaxDouble - IFuranceMinDouble)/(IFuranceMaxInt - IFuranceMinInt);
 }
-double MainWindow::TfuranceIntToDouble(int value)
+double MainWindow:: TfuranceIntToDouble(int value)
 {
     return value * FuranceMaxDeltaT/(IFuranceMaxInt - IFuranceMinInt);
 }
-double MainWindow::mainIntToDouble(int value)
+double MainWindow:: mainIntToDouble(int value)
 {
     return value * (IMainMaxDouble - IMainMinDouble)/(IMainMaxInt - IMainMinInt);
 }
-int MainWindow::IfuranceDoubleToInt(double value)
+int MainWindow:: IfuranceDoubleToInt(double value)
 {
     return value * (IFuranceMaxInt - IFuranceMinInt)/(IFuranceMaxDouble - IFuranceMinDouble);
 }
-int MainWindow::TfuranceDoubleToInt(double value)
+int MainWindow:: TfuranceDoubleToInt(double value)
 {
     return value * (IFuranceMaxInt - IFuranceMinInt)/FuranceMaxDeltaT;
 }
-int MainWindow::mainDoubleToInt(double value)
+int MainWindow:: mainDoubleToInt(double value)
 {
     return value * (IMainMaxInt - IMainMinInt)/(IMainMaxDouble - IMainMinDouble);
 }
@@ -160,6 +160,11 @@ int MainWindow::mainDoubleToInt(double value)
 double MainWindow:: round(double value, int digits)
 {
     return floor(value * pow(10, digits) + 0.5) * pow(10, -digits);
+}
+double MainWindow:: roundSignificantDigits(double value, int digits)
+{
+    double exp = floor(log10(value));
+    return floor(value * pow(10, digits - exp) + 0.5) * pow(10, -digits -exp);
 }
 
 Props::Props(QWidget *parent)
@@ -174,7 +179,7 @@ Props::Props(QWidget *parent)
     setAutoFillBackground(true);
 }
 
-Termometr::Termometr(QWidget *parent, double T_)
+Termometr:: Termometr(QWidget *parent, double T_)
     : Props(parent), T(T_)
 {
     QVBoxLayout *vl = new QVBoxLayout(this);
@@ -197,13 +202,13 @@ Termometr::Termometr(QWidget *parent, double T_)
 
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 }
-void Termometr::setT()
+void Termometr:: setT()
 {
     T = QLocale().toDouble(line_edit->displayText()) + MainWindow::ZeroCelsius;
     emit valueChanged(T);
 }
 
-SemiconductorProps::SemiconductorProps(QWidget *parent, double L_, double S_)
+SemiconductorProps:: SemiconductorProps(QWidget *parent, double L_, double S_)
     :Props(parent), L(L_), S(S_)
 {
     QComboBox* select = new QComboBox(this);
@@ -265,7 +270,7 @@ void SemiconductorProps::setSquare()
     emit squareChanged(S);
 }
 
-Table::Table(QWidget *parent)
+Table:: Table(QWidget *parent)
     :QWidget(parent)
 {
     QPushButton *record = new QPushButton("Записать", this);
@@ -310,7 +315,7 @@ Table::Table(QWidget *parent)
     setRecordStateI(false);
     setRecordStateU(false);
 }
-Table::~Table()
+Table:: ~Table()
 {
     while(!data.empty())
         removeColumn(-1);
@@ -401,7 +406,8 @@ void Table:: saveIntoFile()
 void Table:: drawGraph()
 {
     std::list<std::pair<double, double>> func_data;
-    for(auto it = data.begin(); it != data.end(); ++it)
+    auto it = data.begin();
+    for(++it; it != data.end(); ++it)
     {
         if(((*it)->getR() != "") && ((*it)->getT() != ""))
         {
@@ -409,15 +415,19 @@ void Table:: drawGraph()
                         std::pair<double, double>(
                             QLocale().toDouble((*it)->getT()),
                             QLocale().toDouble((*it)->getR())
-                        )
-            );
+                            )
+                        );
         }
     };
-    Graph *graph = new Graph(func_data);
-    graph->show();
-    graph->exec();
+    if(func_data.size() > 4)
+    {
+        Graph *graph = new Graph(func_data, "t, °C", "R, Ом");
+        graph->show();
+        graph->exec();
+        delete graph;
+    }
 }
-Table::Column::Column(QWidget *parent, const QString& T, const QString& I, const QString& U, const QString& R)
+Table::Column:: Column(QWidget *parent, const QString& T, const QString& I, const QString& U, const QString& R)
     : QFrame(parent)
 {
     QLabel *lblT, *lblI, *lblU, *lblR;
@@ -459,62 +469,57 @@ Table::Column::Column(QWidget *parent, const QString& T, const QString& I, const
 
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 }
-QString Table::Column::getT()
+QString Table:: Column:: getT()
 {
         QLabel *lbl = findChild<QLabel*>("lblT");
         return lbl->text();
 }
-QString Table::Column::getI()
+QString Table:: Column:: getI()
 {
         QLabel *lbl = findChild<QLabel*>("lblI");
         return lbl->text();
 }
-QString Table::Column::getU()
+QString Table:: Column:: getU()
 {
         QLabel *lbl = findChild<QLabel*>("lblU");
         return lbl->text();
 }
-QString Table::Column::getR()
+QString Table:: Column:: getR()
 {
         QLabel *lbl = findChild<QLabel*>("lblR");
         return lbl->text();
 }
 
-Graph:: Graph(std::list<std::pair<double, double>>& func_data, int num_grid_, QDialog * parent)
-    :QDialog(parent), num_grid(num_grid_)
+Graph:: Graph(std::list<std::pair<double, double>>& func_data, const QString& title_x, const QString& title_y, QDialog * parent)
+    :QDialog(parent)
 {
-    data = func_data;
+    QChart *chart = new QChart;
+    chart->setParent(this);
+    QScatterSeries *data = new QScatterSeries(this);
+    data->setColor(QColor(Qt::black));
+    data->setMarkerSize(8);
+    for(auto it = func_data.begin(); it != func_data.end(); ++it)
+        data->append((*it).first, (*it).second);
+    chart->addSeries(data);
+    chart->createDefaultAxes();
+    chart->setTitle("График R(t)");
+    chart->setLocalizeNumbers(true);
+    chart->legend()->hide();
+    QValueAxis *x = (QValueAxis*)chart->axes(Qt::Horizontal).first();
+    x->setMax(1.05* x->max() - 0.05* x->min());
+    x->setMin(1.05* x->min() - 0.05* x->max());
+    x->setTickCount(8);
+    x->setMinorTickCount(4);
+    x->setTitleText(title_x);
+    QValueAxis *y = (QValueAxis*)chart->axes(Qt::Vertical).first();
+    y->setMax(1.05* y->max() - 0.05* y->min());
+    y->setMin(1.05* y->min() - 0.05* y->max());
+    y->setTickCount(8);
+    y->setMinorTickCount(4);
+    y->setTitleText(title_y);
 
-    QChart *chart = new QChart();
     QChartView *plot = new QChartView(chart, this);
-    QVBoxLayout *layout = new QVBoxLayout(this);
-    layout->addWidget(plot);
-    /*for(auto it = data.begin(); it != func_data.end(); ++it)
-    {
-
-    }*/
-    /*auto it = data.begin();
-    double
-            minR = (*it).second,
-            maxR = minR,
-            mint = (*it).first,
-            maxt = mint;
-    for(; it != func_data.end(); ++it)
-    {
-        if((*it).first > maxt)
-            maxt = (*it).first;
-        if((*it).first < mint)
-            mint = (*it).first;
-        if((*it).second> maxR)
-            maxR = (*it).second;
-        if((*it).second < minR)
-            minR = (*it).second;
-    }
-    setGrid(mint, maxt, X_axis);
-    setGrid(minR, maxR, Y_axis);
-
-    Plot * plot = new Plot(this);
-    plot->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    plot->setMinimumSize(QSize(600, 600));
 
     QPushButton *close = new QPushButton("Закрыть", this);
     close->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -524,40 +529,5 @@ Graph:: Graph(std::list<std::pair<double, double>>& func_data, int num_grid_, QD
     layout->addWidget(plot);
     layout->addWidget(close);
     layout->setSizeConstraint(QLayout::SetMinimumSize);
-    layout->setAlignment(close, Qt::AlignRight);*/
-}
-void Graph:: setGrid(double minv, double maxv, int axis)
-{
-    exp[axis] = floor(log10(maxv - minv));
-    double
-            mantissa_min = minv * pow(10, 1 - exp[axis]),
-            mantissa_max = maxv * pow(10, 1 - exp[axis]);
-    min[axis] = mantissa_min = floor(mantissa_min);
-    mantissa_max = floor(mantissa_max) + 1;
-    if((log10(maxv - minv) - exp[axis]) > 0.5)
-        step[axis] = (floor((mantissa_max - mantissa_min)/num_grid/2) + 1)/10;
-    else
-        step[axis] = (floor((mantissa_max - mantissa_min)/num_grid)/2 + 0.5)/10;
-    if((min[axis] < step[axis]) && (min[axis] + (num_grid*2 + 1)*step[axis] > 0))
-        min[axis] = (floor(-min[axis]/step[axis]) + 1)*step[axis];
-}
-int Graph:: getNumGrid()
-{
-    return num_grid;
-}
-
-Graph:: Plot:: Plot(Graph *parent)
-    :Props(parent)
-{
-    setMinimumSize(QSize(600, 600));
-    lbls = new QLabel[parent->getNumGrid()*4 + 2];
-    for(int i = 0; i < parent->getNumGrid()*2; ++i)
-    {
-
-    }
-}
-void Graph:: Plot:: paintEvent(QPaintEvent *)
-{
-    QRectF plot_rect(layout()->contentsRect());
-    QPainter painter(this);
+    layout->setAlignment(close, Qt::AlignRight);
 }

@@ -8,6 +8,7 @@
 #include <QDialog>
 #include <QLabel>
 
+
 class MainWindow : public QWidget
 {
     Q_OBJECT
@@ -47,6 +48,7 @@ public:
     static int mainDoubleToInt(double value);
 
     static double round(double value, int digits);
+    static double roundSignificantDigits(double value, int digits);
 
     static const int
         Diamond = 0,
@@ -71,6 +73,11 @@ class Table : public QWidget
                const QString& current = "",
                const QString& voltage = "",
                const QString& resistance = "");
+        Column(QWidget *parent,
+               double temperature,
+               double current,
+               double voltage,
+               double resistance);
         QString getT();
         QString getI();
         QString getU();
@@ -143,26 +150,10 @@ signals:
 class Graph : public QDialog
 {
     Q_OBJECT
-    std::list<std::pair<double, double>> data;
-    double min[2], step[2], exp[2];
-    int num_grid;
-
-    class Plot : public Props
-    {
-        void paintEvent(QPaintEvent *);
-        QLabel *lbls;
-    public:
-        Plot(Graph* parent);
-        ~Plot();
-    };
 
 public:
     Graph(std::list<std::pair<double, double>>& data,
-          int number_of_grid_lines = 4,
+          const QString& title_x = "x",
+          const QString& title_y = "y",
           QDialog *parent = nullptr);
-    void setGrid(double min_value, double max_value, int axis);
-    int getNumGrid();
-    static const int
-        X_axis = 0,
-        Y_axis = 1;
 };
