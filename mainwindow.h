@@ -1,8 +1,12 @@
 #pragma once
 #include <QWidget>
+#include <QMainWindow>
 #include <QFrame>
 #include <list>
 #include <string>
+#include <QLineEdit>
+#include <QDialog>
+#include <QLabel>
 
 class MainWindow : public QWidget
 {
@@ -11,7 +15,8 @@ class MainWindow : public QWidget
         IMainMinDouble,
         IMainMaxDouble,
         IFuranceMinDouble,
-        IFuranceMaxDouble;
+        IFuranceMaxDouble,
+        FuranceMaxDeltaT;
     static int
         IMainMinInt,
         IMainMaxInt,
@@ -31,11 +36,18 @@ public:
     static void setIMainMaxInt(int);
     static void setIFuranceMinInt(int);
     static void setIFuranceMaxInt(int);
+    static void setFuranceMaxDeltaT(double);
+    static double getFuranceMaxDeltaT();
 
-    static double furanceIntToDouble(int value);
+    static double IfuranceIntToDouble(int value);
+    static double TfuranceIntToDouble(int value);
     static double mainIntToDouble(int value);
-    static int furanceDoubleToInt(double value);
+    static int IfuranceDoubleToInt(double value);
+    static int TfuranceDoubleToInt(double value);
     static int mainDoubleToInt(double value);
+
+    static double round(double value, int digits);
+
     static const int
         Diamond = 0,
         Ge = 1,
@@ -47,22 +59,10 @@ public:
         GaAs = 7;
 };
 
-class Termometr : public QFrame
-{
-    Q_OBJECT
-    double T;
-
-public:
-    Termometr(QWidget *parent = nullptr, double temperature = 273.15);
-public slots:
-    void setT(const QString &);
-signals:
-    void valueChanged(double);
-};
-
 class Table : public QWidget
 {
     Q_OBJECT
+
     class Column : public QFrame
     {
     public:
@@ -71,10 +71,10 @@ class Table : public QWidget
                const QString& current = "",
                const QString& voltage = "",
                const QString& resistance = "");
-        std::string getT();
-        std::string getI();
-        std::string getU();
-        std::string getR();
+        QString getT();
+        QString getI();
+        QString getU();
+        QString getR();
     };
 
     std::list<Column*> data;
@@ -95,4 +95,74 @@ public slots:
     void setRecordStateI(bool state);
     void setRecordStateU(bool state);
     void saveIntoFile();
+    void drawGraph();
+};
+
+class Props : public QFrame
+{
+public:
+    Props(QWidget *parent = nullptr);
+};
+
+class SemiconductorProps : public Props
+{
+    Q_OBJECT
+    double L, S;
+    QLineEdit *line_edit_L;
+    QLineEdit *line_edit_S;
+
+public:
+    SemiconductorProps(QWidget *parent = nullptr,
+                       double length = 1,
+                       double square = 1);
+public slots:
+    void setType(int);
+    void setLength();
+    void setSquare();
+signals:
+    void typeChanged(int);
+    void lengthChanged(double);
+    void squareChanged(double);
+};
+
+class Termometr : public Props
+{
+    Q_OBJECT
+    double T;
+    QLineEdit *line_edit;
+
+public:
+    Termometr(QWidget *parent = nullptr,
+              double temperature = MainWindow::ZeroCelsius);
+public slots:
+    void setT();
+signals:
+    void valueChanged(double);
+};
+
+class Graph : public QDialog
+{
+    Q_OBJECT
+    std::list<std::pair<double, double>> data;
+    double min[2], step[2], exp[2];
+    int num_grid;
+
+    class Plot : public Props
+    {
+        void paintEvent(QPaintEvent *);
+        QLabel *lbls;
+    public:
+        Plot(Graph* parent);
+        ~Plot();
+    };
+
+public:
+    Graph(std::list<std::pair<double, double>>& data,
+          int number_of_grid_lines = 4,
+          QDialog *parent = nullptr);
+    void setGrid(double min_value, double max_value, int axis);
+    int getNumGrid();
+    static const int
+        X_axis = 0,
+        Y_axis = 1;
 };

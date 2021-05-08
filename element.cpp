@@ -1,12 +1,9 @@
 #include "element.h"
 #include "mainwindow.h"
 #include <qpainter.h>
-#include <QLCDNumber>
 #include <QLabel>
 #include <QCheckBox>
 #include <QBoxLayout>
-#include <QSlider>
-#include <QComboBox>
 #include <fstream>
 #include <QString>
 #include <QList>
@@ -14,6 +11,10 @@
 #include <QSizePolicy>
 #include <QFrame>
 #include <QLineEdit>
+#include <ctime>
+#include <random>
+#include <QRegularExpression>
+#include <QDoubleValidator>
 
 int Element::OuterMargins = 10;
 int Element::InnerMargins = 20;
@@ -189,7 +190,8 @@ void Element::genereteLayout()
         CustomGridLayout* layout = new CustomGridLayout(this);
         unsigned int i, j, props, k = 0;
         Multimetr* tmpM;
-        Source* tmpS;
+        MainSource* tmpMS;
+        FuranceSource *tmpFS;
         Resistor* tmpR;
         Semiconductor* tmpSC;
         Subsceme* tmps;
@@ -227,10 +229,20 @@ void Element::genereteLayout()
                     layout->addElement(tmpM, i, j);
                     break;
                 case SourceC:
-                    tmpS = new Source(this);
-                    tmpS->setName("source");
-                    setBorderPropereties<Source>(tmpS, table, i, j);
-                    layout->addElement(tmpS, i, j);
+                    switch (table[i][j] & ElementTypeMask) {
+                    case MainSourceC:
+                        tmpMS = new MainSource(this);
+                        tmpMS->setName("mainsource");
+                        setBorderPropereties<Source>(tmpMS, table, i, j);
+                        layout->addElement(tmpMS, i, j);
+                        break;
+                    case FuranceSourceC:
+                        tmpFS = new FuranceSource(this);
+                        tmpFS->setName("furancesource");
+                        setBorderPropereties<Source>(tmpFS, table, i, j);
+                        layout->addElement(tmpFS, i, j);
+                        break;
+                    }
                     break;
                 case ResistorC:
                     tmpR = new Resistor(this);
@@ -249,8 +261,6 @@ void Element::genereteLayout()
                     props = k;
                     for(k = 1; !(table[i+k][j+props] & Bottom); k++) {}
                     tmps = new Subsceme("Печь", j, i, props, k, this);
-                    //tmps->refreshRect();
-                    //tmps->repaint();
                     break;
                 }
             }
@@ -286,6 +296,10 @@ int Element::parse(char c)
         return Bottom | XC;
     case 's':
         return SubSceme;
+    case 'f':
+        return FuranceSourceC;
+    case 'm':
+        return MainSourceC;
     default:
         return 0;
     }
@@ -318,10 +332,9 @@ void CustomGridLayout::addElement(Element *element, int fromRow, int fromColumn,
               alignment);
 }
 
-Wire::Wire(int contype, Element* parent)
+Wire::Wire(int contype, Element *parent)
     : Element(0, parent), type(contype)
-{
-}
+{}
 void Wire::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
@@ -392,7 +405,7 @@ void Wire::paintEvent(QPaintEvent *)
 Multimetr::Multimetr(int tool_type, Element* parent)
     : Element(2, parent), type(tool_type)
 {
-    QLCDNumber* display = new QLCDNumber(6, this);
+    display = new QLCDNumber(6, this);
     display->setMode(QLCDNumber::Dec);
     display->setSmallDecimalPoint(true);
     display->setSegmentStyle(QLCDNumber::Flat);
@@ -420,7 +433,6 @@ Multimetr::Multimetr(int tool_type, Element* parent)
         head->setText("<center>Термометр (t)</center>");
         units->setText("°С");
         contactsNum = 0;
-        display->display(0);
     }
     QCheckBox* recording = new QCheckBox("записывается", this);
 
@@ -442,7 +454,7 @@ Multimetr::Multimetr(int tool_type, Element* parent)
     setLayout(vl);
 
     QObject::connect(recording, SIGNAL(stateChanged(int)), this, SLOT(recordingState(int)));
-    QObject::connect(this, SIGNAL(valueChanged(double)), display, SLOT(display(double)));
+    //QObject::connect(this, SIGNAL(valueChanged(double)), display, SLOT(display(double)));
     recording->setCheckState(Qt::Unchecked);
 }
 void Multimetr::recordingState(int s)
@@ -463,6 +475,9 @@ void Multimetr::setValue(double v)
     current_value = v;
     if(type == TermometrC)
         current_value -= MainWindow::ZeroCelsius;
+    current_value *= 1 - relative_error + 2 * relative_error * std::rand()/RAND_MAX;
+    current_value = MainWindow::round(current_value, 3);
+    display->display(current_value);
     emit valueChanged(current_value);
 }
 void Multimetr::paintEvent(QPaintEvent *)
@@ -477,55 +492,25 @@ void Multimetr::paintEvent(QPaintEvent *)
     painter.drawRect(OuterMargins, OuterMargins, width() - 2*OuterMargins, height() - 2*OuterMargins);
 }
 
-Source::Source(Element* parent)
-    : Element(2, parent)
+Source::Source(Element* parent, int value_, QString name)
+    : Element(2, parent), value(value_)
 {
-    Arrow* arr = new Arrow(Arrow::Up, this);
-    QSlider* slider = new QSlider(Qt::Vertical, this);
-    arr->setMinimumWidth(slider->width()/2);
+    slider = new QSlider(Qt::Vertical, this);
     QObject::connect(slider, SIGNAL(valueChanged(int)), this, SLOT(setValue(int)));
+    slider->setValue(value_);
     slider->setTickInterval(1);
 
-    QHBoxLayout* layout = new QHBoxLayout(this);
-    layout->setSizeConstraint(QLayout::SetMinimumSize);
-    layout->setContentsMargins(InnerMargins, InnerMargins, InnerMargins, InnerMargins);
-    layout->addWidget(arr);
-    layout->addWidget(slider);
+    QHBoxLayout *layout_horizontal = new QHBoxLayout(this);
+    layout_horizontal->setSizeConstraint(QLayout::SetMinimumSize);
+    layout_horizontal->setContentsMargins(InnerMargins, InnerMargins, InnerMargins, InnerMargins);
+    QVBoxLayout *layout_vertical = new QVBoxLayout;
+    layout_vertical->setSizeConstraint(QLayout::SetMinimumSize);
+    layout_vertical->addWidget(new QLabel(name, this), 0, Qt::AlignTop | Qt::AlignHCenter);
+    layout_horizontal->addLayout(layout_vertical);
+    layout_horizontal->addWidget(slider);
 }
-Source::Arrow::Arrow(int dir, QWidget* parent)
-    :QWidget(parent), direction(dir)
-{}
-void Source::Arrow::paintEvent(QPaintEvent*)
+void Source::drawBox(QPainter &painter)
 {
-    QPainter painter(this);
-    QPen pen;
-    pen.setWidthF(3);
-    pen.setCapStyle(Qt::RoundCap);
-    pen.setJoinStyle(Qt::RoundJoin);
-    painter.setPen(pen);
-    painter.setRenderHint(QPainter::Antialiasing);
-    QPointF
-            topP(width()/3.0, height()/4.0),
-            bottomP(width()/3.0, height()*3/4.0),
-            vertical_margin(0, height()/6.0),
-            horizontal_margin(width()/6.0, 0);
-    painter.drawLine(topP, bottomP);
-    switch (direction) {
-    case Up:
-        painter.drawLine(topP, topP + vertical_margin + horizontal_margin);
-        painter.drawLine(topP, topP + vertical_margin - horizontal_margin);
-        break;
-    case Down:
-        painter.drawLine(bottomP, bottomP - vertical_margin + horizontal_margin);
-        painter.drawLine(bottomP, bottomP - vertical_margin - horizontal_margin);
-        break;
-    }
-    painter.setFont(QFont("Times", 24, -1, true));
-    painter.drawText(topP + 2*vertical_margin - 2*horizontal_margin, "I");
-}
-void Source::paintEvent(QPaintEvent *)
-{
-    QPainter painter(this);
     painter.setPen(pen);
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setBrush(Qt::white);
@@ -542,59 +527,124 @@ void Source::setMax(int val)
 }
 void Source::setValue(int val)
 {
+    value = val;
     emit valueChanged(val);
 }
-
-Semiconductor::Semiconductor(Element* parent)
-    : Element(2, parent)
+int Source::getValue()
 {
-    QComboBox* select = new QComboBox(this);
-    QObject::connect(select, SIGNAL(currentIndexChanged(int)), this, SLOT(setType(int)));
-    QStringList list = (QStringList()
-                        << "Алмаз"
-                        << "Германий"
-                        << "Кремний"
-                        << "Селен"
-                        << "Теллур"
-                        << "Сульфид свинца"
-                        << "Антимонид индия"
-                        << "Арсенид галия");
-    select->addItems(list);
-    QVBoxLayout* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(InnerMargins, InnerMargins, InnerMargins, InnerMargins);
-    layout->addWidget(select);
-
-    QHBoxLayout *hl1 = new QHBoxLayout;
-    QLineEdit *field1 = new QLineEdit("1", this);
-    QLabel *units1 = new QLabel("см", this);
-    QLabel *variable1 = new QLabel("Длина:", this);
-    hl1->addWidget(variable1);
-    hl1->addWidget(field1);
-    hl1->addWidget(units1);
-    hl1->setSizeConstraint(QLayout::SetMinimumSize);
-    QDoubleValidator *validator1 = new QDoubleValidator(field1);
-    validator1->setRange(10e-8, 10e50, 8);
-    field1->setValidator(validator1);
-    QObject::connect(field1, SIGNAL(textEdited(const QString &)), this, SLOT(setLength(const QString &)));
-    layout->addLayout(hl1);
-
-    QHBoxLayout *hl2 = new QHBoxLayout;
-    QLineEdit *field2 = new QLineEdit("1", this);
-    QLabel *units2 = new QLabel("см", this);
-    QLabel *variable2 = new QLabel("Площадь:", this);
-    hl2->addWidget(variable2);
-    hl2->addWidget(field2);
-    hl2->addWidget(units2);
-    hl2->setSizeConstraint(QLayout::SetMinimumSize);
-    QDoubleValidator *validator2 = new QDoubleValidator(field2);
-    validator2->setRange(10e-16, 10e100, 16);
-    field2->setValidator(validator2);
-    QObject::connect(field2, SIGNAL(textEdited(const QString &)), this, SLOT(setSquare(const QString &)));
-    layout->addLayout(hl2);
-
-    layout->addStretch();
-    layout->setSizeConstraint(QLayout::SetMinimumSize);
+    return value;
 }
+
+MainSource::MainSource(Element* parent, int value_)
+    :Source(parent, value_)
+{
+    indicator = new Indicator(this);
+    ((QVBoxLayout*)layout()->itemAt(0))->addWidget(indicator, 0, Qt::AlignBottom | Qt::AlignLeft);
+}
+MainSource::Indicator::Indicator(QWidget *parent, bool status_)
+    :QWidget(parent), status(status_)
+{
+    indicator_radius = 10;
+    QHBoxLayout *layout = new QHBoxLayout(this);
+    layout->addWidget(new QLabel("Максимальное\nнапряжение", this));
+    layout->addSpacing(3*indicator_radius);
+    setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+}
+void MainSource::Indicator::paintEvent(QPaintEvent*)
+{
+    int right_margin;
+    right_margin = contentsMargins().right();
+    QColor color;
+    Source *source = (Source*)parent();
+    if(source->getValue() == 0)
+        color = QColor(Qt::gray);
+    else
+        if(status)
+            color = QColor(Qt::red);
+        else
+            color = QColor(Qt::green);
+    QPainter painter(this);
+    painter.setPen(source->getPen());
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setBrush(color);
+    painter.drawEllipse(
+                QPoint(width() - right_margin - 1.5*indicator_radius, height()/2),
+                indicator_radius,
+                indicator_radius);
+}
+void MainSource::Indicator::setStatus(bool val)
+{
+    status = val;
+}
+void MainSource::setIndicatorStatus(bool val)
+{
+    indicator->setStatus(val);
+    indicator->update();
+}
+void MainSource::setValue(int val)
+{
+    value = val;
+    emit valueChanged(val);
+    indicator->update();
+}
+void MainSource::paintEvent(QPaintEvent *)
+{
+    QPainter painter(this);
+    drawBox(painter);
+}
+
+FuranceSource::FuranceSource(Element* parent, int value_, double Troom_, double maxdt_)
+    :Source(parent, value_, "Нагрев печи"), Troom(Troom_), max_dT(maxdt_)
+{
+    line_edit_t = new QLineEdit("0", this);
+    QDoubleValidator *validator_t = new QDoubleValidator(line_edit_t);
+    validator_t->setRange(0, MainWindow::getFuranceMaxDeltaT(), 1);
+    QObject::connect(line_edit_t, SIGNAL(editingFinished()), this, SLOT(setValue()));
+
+    QHBoxLayout *line_edit_layout = new QHBoxLayout;
+    line_edit_layout->addWidget(new QLabel("Нагрев на", this));
+    line_edit_layout->addWidget(line_edit_t);
+    line_edit_layout->addWidget(new QLabel("°С", this));
+    ((QVBoxLayout*)layout()->itemAt(0))->addLayout(line_edit_layout);
+    ((QVBoxLayout*)layout()->itemAt(0))->addStretch(1);
+}
+QString FuranceSource::toString(int val)
+{
+    return QLocale().toString(
+                    MainWindow::round(
+                        MainWindow::TfuranceIntToDouble(val), 1
+                    )
+    );
+}
+int FuranceSource::toInt(const QString& val)
+{
+   return MainWindow::TfuranceDoubleToInt(
+                QLocale().toDouble(
+                    val
+                )
+    );
+}
+void FuranceSource::setValue(int val)
+{
+    value = val;
+    line_edit_t->setText(toString(val));
+    emit valueChanged(val);
+}
+void FuranceSource::setValue()
+{
+    int int_val = toInt(line_edit_t->text());
+    slider->setValue(int_val);
+    line_edit_t->setText(toString(int_val));
+}
+void FuranceSource::paintEvent(QPaintEvent *)
+{
+    QPainter painter(this);
+    drawBox(painter);
+}
+
+Semiconductor::Semiconductor(Element *parent)
+    : Element(2, parent)
+{}
 void Semiconductor::paintEvent(QPaintEvent*)
 {
     QPainter painter(this);
@@ -607,28 +657,10 @@ void Semiconductor::paintEvent(QPaintEvent*)
     painter.setBrush(QBrush(QColor(Qt::darkGray), Qt::BDiagPattern));
     painter.drawRect(OuterMargins, OuterMargins, width() - 2*OuterMargins, height() - 2*OuterMargins);
 }
-void Semiconductor::setType(int type)
-{
-    emit typeChanged(type);
-}
-void Semiconductor::setLength(const QString &val)
-{
-    QLocale locale;
-    double tmp = locale.toDouble(val);
-    emit lengthChanged(tmp);
-}
-void Semiconductor::setSquare(const QString &val)
-{
-    QLocale locale;
-    double tmp = locale.toDouble(val);
-    emit squareChanged(tmp);
-}
 
 Resistor::Resistor(Element* parent)
     : Element(2, parent)
-{
-
-}
+{}
 void Resistor::paintEvent(QPaintEvent*)
 {
     QPainter painter(this);
@@ -680,6 +712,7 @@ void Subsceme::paintEvent(QPaintEvent*)
 {
     refreshRect();
     QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
     QPen pen;
     pen.setStyle(Qt::DashLine);
     pen.setWidthF(4);

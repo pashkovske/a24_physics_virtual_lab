@@ -46,7 +46,7 @@ public:
     void setL(double);
     void setT(double);
     void setI(double);
-    void refreshU();
+    bool refreshU(double maximum_voltage);
     int getType();
     double getU();
     double getS();
@@ -56,8 +56,8 @@ public:
 
 class FuranceCalc
 {
-    double Troom, T, I;
-    static constexpr double alpha = 10.0;
+    double Troom, T, dT;
+    //static constexpr double alpha = 10.0;
 
 public:
     FuranceCalc(double room_tempirature,
@@ -66,11 +66,11 @@ public:
     FuranceCalc(double room_tempirature = MainWindow::ZeroCelsius);
     void setTroom(double);
     void setT(double);
-    void setI(double);
+    void setdT(double);
     void refreshT();
     double getT();
     double getTroom();
-    double getI();
+    double getdT();
 };
 
 class SchemeCalc : public QObject
@@ -81,6 +81,7 @@ class SchemeCalc : public QObject
     double V, A;
     SemiconductorCalc* R;
     FuranceCalc* furance;
+    double UMax;
 
 public:
     SchemeCalc(QObject* parent = nullptr, double source_current = 0);
@@ -98,12 +99,14 @@ public:
         Semiconductor_length = 7,
         Semiconductor_square = 8,
         Semiconductor_current = 9,
-        Semiconductor_voltage = 10;
+        Semiconductor_voltage = 10,
+        Maximum_voltage = 11,
+        Furance_dtempirature = 12;
     int getSemiconductorType();
 public slots:
     void refreshAll();
     void setSemiconductorType(int);
-    void setFuranceCurrent(int);
+    void setFuranceT(int);
     void setMainSourceCurrent(int);
     void setRoomTemperature(double);
     void setSemiconductorLength(double);
@@ -112,4 +115,5 @@ signals:
     void termometrStatusChanged(double);
     void voltmetrStatusChanged(double);
     void ampermetrStatusChanged(double);
+    void voltageIsMaximum(bool);
 };

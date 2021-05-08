@@ -3,6 +3,9 @@
 #include <QLabel>
 #include <QGridLayout>
 #include <QPen>
+#include <QSlider>
+#include <QLCDNumber>
+#include "mainwindow.h"
 
 class Element : public QWidget
 {
@@ -53,6 +56,8 @@ public:
         XC =                    0b10000000000,
         MultimetrC =            0b0011,
         SourceC =               0b0100,
+        MainSourceC =           0b010000,
+        FuranceSourceC =        0b100000,
         ResistorC =             0b0101,
         SemiconductorC =        0b0110,
         SubSceme =              0b100000000000,
@@ -92,7 +97,9 @@ class Multimetr : public Element
     bool record_state;
     double current_value;
     int type;
+    QLCDNumber* display;
 
+    static constexpr double relative_error = 0.02;
     void paintEvent(QPaintEvent*);
 
 public:
@@ -110,28 +117,63 @@ signals:
 class Source : public Element
 {
     Q_OBJECT
-
-    void paintEvent(QPaintEvent*);
+protected:
+    int value;
+    void drawBox(QPainter&);
+    QSlider* slider;
 
 public:
-    Source(Element* parent = nullptr);
-    class Arrow : public QWidget
-    {
-        int direction;
-        void paintEvent(QPaintEvent*);
-
-    public:
-        Arrow(int arrow_direction = 0, QWidget* parent = nullptr);
-        static const int
-            Up = 0,
-            Down = 1;
-    };
+    Source(Element* parent = nullptr, int value = 0, QString name = "Источник тока");
+    int getValue();
     void setMin(int);
     void setMax(int);
 public slots:
-    void setValue(int);
+    virtual void setValue(int);
 signals:
     void valueChanged(int);
+};
+
+class MainSource : public Source
+{
+    Q_OBJECT
+    void paintEvent(QPaintEvent*);
+    class Indicator : public QWidget
+    {
+        bool status;
+        void paintEvent(QPaintEvent*);
+        int indicator_radius;
+    public:
+        Indicator(QWidget *patent = nullptr, bool status = false);
+        void setStatus(bool);
+    };
+    Indicator *indicator;
+public:
+    MainSource(Element* parent = nullptr, int value = 0);
+
+public slots:
+    void setValue(int);
+    void setIndicatorStatus(bool);
+};
+
+class FuranceSource : public Source
+{
+    Q_OBJECT
+    double Troom, max_dT;
+    void paintEvent(QPaintEvent*);
+    QLineEdit* line_edit_t;
+    QString toString(int);
+    int toInt(const QString&);
+public:
+    FuranceSource(Element* parent = nullptr,
+                  int value = 0,
+                  double room_tempirature = MainWindow::ZeroCelsius,
+                  double max_diff_with_toom_temperature = 300);
+public slots:
+    //void setMin(double);
+    void setValue(int);
+    void setValue();
+//signals:
+//    void valueChanged(double);
 };
 
 class Semiconductor : public Element
@@ -141,14 +183,6 @@ class Semiconductor : public Element
     void paintEvent(QPaintEvent*);
 public:
     Semiconductor(Element* parent = nullptr);
-public slots:
-    void setType(int);
-    void setLength(const QString &);
-    void setSquare(const QString &);
-signals:
-    void typeChanged(int);
-    void lengthChanged(double);
-    void squareChanged(double);
 };
 
 class Resistor : public Element

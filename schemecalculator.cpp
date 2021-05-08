@@ -21,6 +21,7 @@ SchemeCalc::SchemeCalc(QObject* parent, double Isource_)
 {
     R = new SemiconductorCalc;
     furance = new FuranceCalc;
+    UMax = 40.0;
     refreshValue(Voltmetr);
     refreshValue(Ampermetr);
 }
@@ -35,9 +36,9 @@ void SchemeCalc::setValue(int valtype, double val)
     case Room_tempirature:
         furance->setTroom(val);
         break;
-    case Furance_current:
-        furance->setI(val);
-        break;
+//    case Furance_current:
+//        furance->setI(val);
+//        break;
     case Source_current:
         Isource = val;
         break;
@@ -54,6 +55,9 @@ void SchemeCalc::setValue(int valtype, double val)
     case Semiconductor_current:
         R->setI(val);
         break;
+    case Furance_dtempirature:
+        furance->setdT(val);
+        break;
     }
 }
 double SchemeCalc::getValue(int valtype)
@@ -69,8 +73,8 @@ double SchemeCalc::getValue(int valtype)
         return V;
     case Ampermetr:
         return A;
-    case Furance_current:
-        return furance->getI();
+    case Furance_dtempirature:
+        return furance->getdT();
     case Semiconductor_current:
         return R->getI();
     case Semiconductor_length:
@@ -97,29 +101,32 @@ void SchemeCalc::refreshValue(int valtype)
     case Furance_tempirature:
         furance->refreshT();
         R->setT(furance->getT());
+        emit termometrStatusChanged(getValue(Furance_tempirature));
         break;
     case Ampermetr:
         A = Isource;
         R->setI(A);
+        emit ampermetrStatusChanged(getValue(Ampermetr));
         break;
     case Voltmetr:
-        R->refreshU();
+        emit voltageIsMaximum(R->refreshU(UMax));
         V = R->getU();
+        A = R->getI();
+        emit ampermetrStatusChanged(getValue(Ampermetr));
+        emit voltmetrStatusChanged(getValue(Voltmetr));
         break;
     }
 }
 void SchemeCalc::refreshAll()
 {
     refreshValue(Furance_tempirature);
-    emit termometrStatusChanged(getValue(Furance_tempirature));
     refreshValue(Ampermetr);
-    emit ampermetrStatusChanged(getValue(Ampermetr));
     refreshValue(Voltmetr);
-    emit voltmetrStatusChanged(getValue(Voltmetr));
 }
-void SchemeCalc::setFuranceCurrent(int val)
+void SchemeCalc::setFuranceT(int val)
 {
-    setValue(Furance_current, MainWindow::furanceIntToDouble(val));
+    setValue(Furance_dtempirature,
+             MainWindow::TfuranceIntToDouble(val));
     refreshAll();
 }
 void SchemeCalc::setMainSourceCurrent(int val)
@@ -192,29 +199,36 @@ double SemiconductorCalc::getU()
 {
     return U;
 }
-void SemiconductorCalc::refreshU()
+bool SemiconductorCalc::refreshU(double U_Max)
 {
     double C_0 = consts->getProperty(type, C),
             betta = consts->getProperty(type, Betta);
     U = L/C_0/S * exp(betta/T)*I;
+    if(U > U_Max)
+    {
+        I = U_Max * C_0*S/L * exp(-betta/T);
+        U = U_Max;
+        return true;
+    }
+    return false;
 }
 
-FuranceCalc::FuranceCalc(double Troom_, double T_, double I_)
-    : Troom(Troom_), T(T_), I(I_)
+FuranceCalc::FuranceCalc(double Troom_, double T_, double dT_)
+    : Troom(Troom_), T(T_), dT(dT_)
 {}
 FuranceCalc::FuranceCalc(double Troom_)
     :Troom(Troom_)
 {
     T = Troom;
-    I = 0;
+    dT = 0;
 }
 void FuranceCalc::setTroom(double val)
 {
     Troom = val;
 }
-void FuranceCalc::setI(double val)
+void FuranceCalc::setdT(double val)
 {
-    I = val;
+    dT = val;
 }
 void FuranceCalc::setT(double val)
 {
@@ -222,11 +236,11 @@ void FuranceCalc::setT(double val)
 }
 void FuranceCalc::refreshT()
 {
-    T = Troom + alpha * I * I;
+    T = Troom + dT;
 }
-double FuranceCalc::getI()
+double FuranceCalc::getdT()
 {
-    return I;
+    return dT;
 }
 double FuranceCalc::getT()
 {
